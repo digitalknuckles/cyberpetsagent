@@ -1,9 +1,11 @@
+import { OpenAIStream, OpenAIStreamPayload } from "./utils/OpenAIStream"; // helper for streaming OpenAI responses
+
 export const config = {
   runtime: "edge",
 };
 
 export default async function handler(req: Request) {
-  // ✅ Handle CORS preflight (fixes 405 + CORS)
+  // ----------------- CORS preflight -----------------
   if (req.method === "OPTIONS") {
     return new Response(null, {
       status: 200,
@@ -20,15 +22,41 @@ export default async function handler(req: Request) {
   }
 
   try {
-    const { messages } = await req.json();
+    // ----------------- verify session cookie -----------------
+    const cookie = req.headers.get("cookie") || "";
+    const sessionMatch = cookie.match(/session=([^;]+)/);
+    if (!sessionMatch) {
+      return new Response("Unauthorized: no session", { status: 401 });
+    }
+    const sessionId = sessionMatch[1];
 
-    // ✅ Streaming response proof-of-life (replace with OpenAI later)
-    const stream = new ReadableStream({
-      start(controller) {
-        controller.enqueue(new TextEncoder().encode("✅ Streaming active...\n"));
-        setTimeout(() => controller.close(), 500);
-      },
-    });
+    // TODO: optionally verify sessionId server-side (lookup DB or in-memory store)
+    // For simplicity, assume valid if present
+
+    const { input, context } = await req.json();
+
+    if (!input) {
+      return new Response("Bad Request: missing input", { status: 400 });
+    }
+
+    // ----------------- build OpenAI payload -----------------
+    const payload: OpenAIStreamPayload = {
+      model: "gpt-4o-mini",
+      messages: [
+        {
+          role: "system",
+          content: `You are an AI assistant for NFT-gated users. Context: ${JSON.stringify(
+            context || {}
+          )}`,
+        },
+        { role: "user", content: input },
+      ],
+      temperature: 0.7,
+      stream: true,
+    };
+
+    // ----------------- create streaming response -----------------
+    const stream = await OpenAIStream(payload);
 
     return new Response(stream, {
       headers: {
@@ -38,7 +66,6 @@ export default async function handler(req: Request) {
         "Access-Control-Allow-Origin": "https://digitalknuckles.github.io",
       },
     });
-
   } catch (err) {
     console.error("Chat API error:", err);
     return new Response(JSON.stringify({ error: "Internal Server Error" }), {
