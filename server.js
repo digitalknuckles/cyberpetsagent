@@ -1,78 +1,105 @@
-  const express = require('express');
-  const fetch = require('node-fetch');
-  const { ethers } = require('ethers');
-  const app = express();
-  app.use(express.json());
+const express = require('express');
+const fetch = require('node-fetch');
+const cookieParser = require('cookie-parser');
 
-  // simple in-memory rate limit map (production: use redis)
-  const rateMap = new Map();
+const app = express();
+app.use(express.json());
+app.use(cookieParser());
 
-  app.post('/api/chat', async (req,res) =>{
-    try{
-      const { address, signature, input, context } = req.body;
-      // verify signature if present
-      if(signature){
-        const recovered = ethers.utils.verifyMessage('I am requesting an AI response: ' + input, signature);
-        if(recovered.toLowerCase() !== address.toLowerCase()){
-          return res.status(401).json({ error: 'signature mismatch' });
-        }
-      }
+// Load environment variables
+const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+const PORT = process.env.PORT || 3000;
 
-      // OPTIONAL: server-side ownership check here using ethers provider and RPC
-      // e.g. use provider.getSigner / contract.ownerOf to verify nft ownership
+// --- Helper: stream OpenAI completion ---
+async function streamOpenAIResponse(prompt, res) {
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
 
-      // forward to OpenAI (example using Chat Completions)
-      const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
-      if(!OPENAI_API_KEY) return res.status(500).json({ error: 'Server misconfigured: missing OPENAI_API_KEY' });
-
-      const prompt = `User address: ${address}\nContext: ${JSON.stringify(context)}\nUser: ${input}`;
-      const payload = {
-        model: 'gpt-4o-mini',
-        messages: [
-          { role: 'system', content: 'You are an NFT-aware assistant. Keep responses short (2-3 sentences) on mobile.' },
-          { role: 'user', content: prompt }
-        ],
-        max_tokens: 400
-      };
-
-      const r = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${OPENAI_API_KEY}`
-        },
-        body: JSON.stringify(payload)
-      });
-res.setHeader('Content-Type', 'text/plain; charset=utf-8');
-res.setHeader('Transfer-Encoding', 'chunked');
-
-const payload = {
-  model: 'gpt-4o-mini',
-  stream: true,
-  messages: [
-    { role: 'system', content: 'You are an NFT-aware assistant. Keep responses short and conversational.' },
-    { role: 'user', content: prompt }
-  ],
-  max_tokens: 400
-};
-
-const openaiResp = await fetch('https://api.openai.com/v1/chat/completions', {
-  method: 'POST',
-  headers: {
-    'Content-Type': 'application/json',
-    'Authorization': `Bearer ${OPENAI_API_KEY}`
-  },
-  body: JSON.stringify(payload)
-});
-
-// Relay the streaming data chunk-by-chunk
-for await (const chunk of openaiResp.body) {
-  res.write(chunk);
-}
-res.end();
-    }catch(err){
-      console.error(err); res.status(500).json({ error: 'server error' });
-    }
+  const openaiResp = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${OPENAI_API_KEY}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: 'gpt-4o-mini',
+      messages: [{ role: 'user', content: prompt }],
+      stream: true
+    }),
   });
 
-  const port = process.env.PORT || 3000; app.listen(port, ()=> console.log('listening',port));
+  if (!openaiResp.ok) {
+    res.write(`data: Error contacting OpenAI: ${openaiResp.status}\n\n`);
+    res.end();
+    return;
+  }
+
+  const reader = openaiResp.body.getReader();
+  const decoder = new TextDecoder();
+
+  let done = false;
+  while (!done) {
+    const { value, done: doneReading } = await reader.read();
+    done = doneReading;
+    if (value) {
+      const chunk = decoder.decode(value);
+      // OpenAI streams events in "data: ..." lines
+      const lines = chunk.split('\n').filter(Boolean);
+      for (const line of lines) {
+        if (line.startsWith('data: [DONE]')) {
+          res.write('data: [DONE]\n\n');
+          res.end();
+          return;
+        }
+        if (line.startsWith('data: ')) {
+          const jsonStr = line.replace(/^data: /, '');
+          try {
+            const parsed = JSON.parse(jsonStr);
+            const content = parsed.choices[0].delta?.content;
+            if (content) res.write(`data: ${content}\n\n`);
+          } catch (e) {
+            console.warn('JSON parse error', e);
+          }
+        }
+      }
+    }
+  }
+}
+
+// --- /api/chat route ---
+app.post('/api/chat', async (req, res) => {
+  const { input, sessionId } = req.body;
+
+  // Basic session validation
+  if (!sessionId || sessionId !== req.cookies.sessionId) {
+    return res.status(401).json({ error: 'Unauthorized — invalid session' });
+  }
+
+  if (!input) return res.status(400).json({ error: 'Missing input' });
+
+  try {
+    await streamOpenAIResponse(input, res);
+  } catch (e) {
+    console.error('Streaming failed', e);
+    res.status(500).json({ error: 'Server error streaming AI response' });
+  }
+});
+
+// --- /api/auth route ---
+app.post('/api/auth', (req, res) => {
+  const { address } = req.body;
+  if (!address) return res.status(400).json({ error: 'Missing wallet address' });
+
+  // Generate a simple session ID
+  const sessionId = `sess_${Math.random().toString(36).slice(2)}_${Date.now()}`;
+  res.cookie('sessionId', sessionId, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'strict',
+    maxAge: 24 * 60 * 60 * 1000, // 24 hours
+  });
+  res.json({ sessionId });
+});
+
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
