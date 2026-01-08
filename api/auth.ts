@@ -1,21 +1,24 @@
-import { ethers } from "ethers";
-
 export const config = {
   runtime: "edge",
 };
 
-const SESSIONS = new Map<string, string>(); // sessionId -> address (in-memory, ephemeral)
-
-function generateSessionId() {
-  return crypto.randomUUID();
+interface AuthRequest {
+  address: string;
+  signature?: string;
+  nonce?: string;
 }
+
+const NONCE_STORE: Record<string, string> = {}; // simple in-memory store for demo; ephemeral
+
+// minimal ethers utils using ESM-compatible functions
+import { verifyMessage } from "https://cdn.jsdelivr.net/npm/ethers@6.9.2/dist/ethers.min.js";
 
 export default async function handler(req: Request) {
   if (req.method === "OPTIONS") {
     return new Response(null, {
       status: 200,
       headers: {
-        "Access-Control-Allow-Origin": "https://digitalknuckles.github.io",
+        "Access-Control-Allow-Origin": "*",
         "Access-Control-Allow-Methods": "POST, OPTIONS",
         "Access-Control-Allow-Headers": "Content-Type",
       },
@@ -27,49 +30,43 @@ export default async function handler(req: Request) {
   }
 
   try {
-    const { address, signature, nonce } = await req.json();
+    const { address, signature, nonce } = (await req.json()) as AuthRequest;
+    const lowerAddr = address.toLowerCase();
 
-    if (!address) return new Response("Missing address", { status: 400 });
-
-    // First step: if no signature provided, generate a nonce and return it
+    // Step 1: no signature → generate nonce
     if (!signature) {
-      const newNonce = `auth:${Date.now()}:${Math.floor(Math.random() * 999999)}`;
+      const newNonce = Math.floor(Math.random() * 1e16).toString();
+      NONCE_STORE[lowerAddr] = newNonce;
       return new Response(JSON.stringify({ nonce: newNonce }), {
         status: 200,
-        headers: {
-          "Content-Type": "application/json",
-          "Access-Control-Allow-Origin": "https://digitalknuckles.github.io",
-        },
+        headers: { "Content-Type": "application/json" },
       });
     }
 
-    // Verify signature
-    if (!nonce) return new Response("Missing nonce", { status: 400 });
-
-    const signerAddr = ethers.verifyMessage(nonce, signature).toLowerCase();
-    if (signerAddr !== address.toLowerCase()) {
-      return new Response("Signature mismatch", { status: 401 });
+    // Step 2: signature verification
+    if (!nonce || !NONCE_STORE[lowerAddr] || NONCE_STORE[lowerAddr] !== nonce) {
+      return new Response(JSON.stringify({ ok: false, error: "Invalid nonce" }), { status: 400 });
     }
 
-    // ✅ Signature valid, create session
-    const sessionId = generateSessionId();
-    SESSIONS.set(sessionId, address.toLowerCase());
+    const signerAddress = verifyMessage(nonce, signature);
+    if (signerAddress.toLowerCase() !== lowerAddr) {
+      return new Response(JSON.stringify({ ok: false, error: "Invalid signature" }), { status: 400 });
+    }
 
+    // ✅ Auth successful, delete nonce (one-time use)
+    delete NONCE_STORE[lowerAddr];
+
+    // For simplicity, just return ok; in prod, set a cookie or JWT
     return new Response(JSON.stringify({ ok: true }), {
       status: 200,
-      headers: {
-        "Set-Cookie": `session=${sessionId}; HttpOnly; Path=/; Max-Age=${60 * 60 * 24}; SameSite=Lax`,
-        "Content-Type": "application/json",
-        "Access-Control-Allow-Origin": "https://digitalknuckles.github.io",
-      },
+      headers: { "Content-Type": "application/json" },
     });
+
   } catch (err) {
-    console.error("Auth API error:", err);
-    return new Response(JSON.stringify({ error: "Internal Server Error" }), {
+    console.error("Auth error:", err);
+    return new Response(JSON.stringify({ ok: false, error: "Internal Server Error" }), {
       status: 500,
-      headers: {
-        "Access-Control-Allow-Origin": "https://digitalknuckles.github.io",
-      },
+      headers: { "Content-Type": "application/json" },
     });
   }
 }
