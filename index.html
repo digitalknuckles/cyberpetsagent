@@ -86,7 +86,7 @@
   <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@walletconnect/web3-provider@1.8.0/dist/umd/index.min.js"></script>
 
- <script>
+<script>
   // ===== CONFIG =====
   const CONFIG = {
     NETWORK: 'mainnet',
@@ -135,9 +135,7 @@
       .replaceAll('>','&gt;')
       .replaceAll('\n','<br/>');
   }
-  function scrollMessagesToBottom(){
-    messagesContainer.scrollTop = messagesContainer.scrollHeight;
-  }
+  function scrollMessagesToBottom(){ messagesContainer.scrollTop = messagesContainer.scrollHeight; }
   function pushMessage(who, text){
     const el = document.createElement('div');
     let cls = 'msg ' + (who==='User'?'user':'ai');
@@ -194,19 +192,44 @@
     }
   });
 
+  // ----------------- auth session via backend -----------------
+  async function signAuthMessage(){
+    if(!signer) return alert('Connect wallet first');
+    try{
+      // 1️⃣ request nonce from backend
+      const nonceResp = await fetch(`${CONFIG.API_BASE}/api/auth/nonce`, {
+        method:'POST',
+        headers:{ 'Content-Type':'application/json' },
+        body: JSON.stringify({ address: userAddress })
+      });
+      const { nonce } = await nonceResp.json();
+
+      // 2️⃣ sign nonce with wallet
+      const sig = await signer.signMessage(nonce);
+
+      // 3️⃣ send signed nonce to backend to set HTTP-only session cookie
+      const sessionResp = await fetch(`${CONFIG.API_BASE}/api/auth/session`, {
+        method:'POST',
+        headers:{ 'Content-Type':'application/json' },
+        body: JSON.stringify({ address: userAddress, signature: sig })
+      });
+
+      if(sessionResp.ok){
+        pushMessage('System', 'Authentication complete. Your session is active!');
+      }else{
+        const errText = await sessionResp.text();
+        pushMessage('System', `Session creation failed: ${errText}`);
+      }
+
+    }catch(e){ console.error('signAuthMessage error', e); pushMessage('System','Failed to authenticate.'); }
+  }
+
   async function onConnected(){
     statusEl.textContent = `Connected: ${short(userAddress)}`;
     connectBtn.textContent = 'Connected';
 
-    // --- Auth session with backend ---
-    try{
-      await fetch(`${CONFIG.API_BASE}/api/auth`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ address: userAddress })
-      });
-      console.log('Backend session cookie set.');
-    }catch(e){ console.warn('Session creation failed', e); }
+    // automatically sign once for session
+    signAuthMessage();
 
     const contract = new ethers.Contract(CONFIG.NFT_CONTRACT, ERC721_ABI, web3Provider);
     let owns = false;
@@ -231,7 +254,6 @@
     inputEl.disabled = false;
     sendBtn.disabled = false;
 
-    // Attempt to fetch PFP from metadata
     try{
       let tokenId = CONFIG.NFT_TOKEN_ID != null ? CONFIG.NFT_TOKEN_ID : null;
       if(!tokenId && contract.tokenOfOwnerByIndex){
@@ -274,7 +296,7 @@
       const resp = await fetch(`${CONFIG.API_BASE}/api/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ input: text, sessionId: null }) // session handled by cookie
+        body: JSON.stringify({ input: text }) // session handled by HTTP-only cookie
       });
 
       if(placeholder.parentNode) placeholder.parentNode.removeChild(placeholder);
@@ -285,7 +307,6 @@
         return;
       }
 
-      // streaming response
       if(resp.body && resp.body.getReader){
         const streamEl = document.createElement('div');
         streamEl.className = 'msg ai';
@@ -320,7 +341,6 @@
   connectBtn.onclick = connectWallet;
   sendBtn.onclick = sendMessage;
 
-  // initial guidance
   pushMessage('System','Welcome — click Connect Wallet. Chat will unlock only if your wallet holds the configured NFT.');
 </script>
 </body>
