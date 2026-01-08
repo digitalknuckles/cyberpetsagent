@@ -193,36 +193,41 @@
   });
 
   // ----------------- auth session via backend -----------------
-  async function signAuthMessage(){
-    if(!signer) return alert('Connect wallet first');
-    try{
-      // 1️⃣ request nonce from backend
-      const nonceResp = await fetch(`${CONFIG.API_BASE}/api/auth/nonce`, {
-        method:'POST',
-        headers:{ 'Content-Type':'application/json' },
-        body: JSON.stringify({ address: userAddress })
-      });
-      const { nonce } = await nonceResp.json();
+async function signAuthMessage() {
+  if (!signer) return alert('Connect wallet first');
 
-      // 2️⃣ sign nonce with wallet
-      const sig = await signer.signMessage(nonce);
+  try {
+    // 1️⃣ Request nonce from backend
+    const nonceResp = await fetch(`${CONFIG.API_BASE}/api/auth`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ address: userAddress })
+    });
+    const { nonce } = await nonceResp.json();
+    if (!nonce) throw new Error('No nonce returned');
 
-      // 3️⃣ send signed nonce to backend to set HTTP-only session cookie
-      const sessionResp = await fetch(`${CONFIG.API_BASE}/api/auth/session`, {
-        method:'POST',
-        headers:{ 'Content-Type':'application/json' },
-        body: JSON.stringify({ address: userAddress, signature: sig })
-      });
+    // 2️⃣ Sign the nonce with wallet
+    const sig = await signer.signMessage(nonce);
 
-      if(sessionResp.ok){
-        pushMessage('System', 'Authentication complete. Your session is active!');
-      }else{
-        const errText = await sessionResp.text();
-        pushMessage('System', `Session creation failed: ${errText}`);
-      }
+    // 3️⃣ Send signature + nonce back to backend to create session
+    const verifyResp = await fetch(`${CONFIG.API_BASE}/api/auth`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ address: userAddress, signature: sig, nonce })
+    });
 
-    }catch(e){ console.error('signAuthMessage error', e); pushMessage('System','Failed to authenticate.'); }
+    const result = await verifyResp.json();
+    if (result.ok) {
+      alert('✅ Session created! You can now chat without signing every message.');
+    } else {
+      alert('❌ Session creation failed: ' + JSON.stringify(result));
+    }
+
+  } catch (err) {
+    console.error('signAuthMessage error:', err);
+    alert('Error during signing/auth session creation. See console.');
   }
+}
 
   async function onConnected(){
     statusEl.textContent = `Connected: ${short(userAddress)}`;
