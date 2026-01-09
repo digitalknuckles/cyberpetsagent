@@ -1,164 +1,122 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <title>NFT-Gated AI Chat — Cyberpets</title>
-  <style>
-    :root{
-      --bg:#0b1020; --card:#0f1724; --muted:#94a3b8; --accent:#7c3aed;
-      --glass: rgba(255,255,255,0.03);
-      --bubble-user: linear-gradient(135deg,#7c3aed,#06b6d4);
-      --bubble-ai: #111827;
-      font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial;
-    }
-    html,body{height:100%;margin:0;background:linear-gradient(180deg,#071024,#071022);color:#e6eef8}
-    .app{max-width:720px;margin:0 auto;height:100vh;display:flex;flex-direction:column}
-    header{padding:14px 16px;display:flex;align-items:center;gap:12px}
-    .brand{font-weight:700;font-size:18px}
-    .subtitle{font-size:12px;color:var(--muted)}
-    .connect-row{margin-left:auto}
-    button.btn{background:var(--accent);border:none;padding:8px 12px;border-radius:12px;color:white;font-weight:600;cursor:pointer}
-    main.chat-area{flex:1;padding:8px 12px 90px;overflow:auto}
-    .system-card{background:var(--glass);padding:12px;border-radius:12px;color:var(--muted);font-size:13px}
-    .messages{display:flex;flex-direction:column;gap:10px;margin-top:10px}
-    .msg{max-width:86%;padding:12px;border-radius:14px;font-size:15px}
-    .msg.ai{background:var(--bubble-ai);align-self:flex-start}
-    .msg.user{background:var(--bubble-user);align-self:flex-end;color:white}
-    .meta{font-size:12px;color:var(--muted);margin-bottom:6px}
-    .composer{position:fixed;bottom:0;left:0;right:0;padding:10px;background:#070a12}
-    .composer-inner{max-width:720px;margin:0 auto;display:flex;gap:8px}
-    .input{flex:1;background:transparent;border:1px solid rgba(255,255,255,0.1);padding:12px;border-radius:14px;color:white}
-    .send{background:linear-gradient(135deg,#06b6d4,#7c3aed);border:none;padding:10px 14px;border-radius:12px;color:white;font-weight:700}
-    .muted{color:var(--muted);font-size:13px}
-    .loading{height:10px;width:40%;background:rgba(255,255,255,0.08);border-radius:6px}
-  </style>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Cyberpets AI</title>
+<style>
+body{margin:0;font-family:Inter,system-ui;background:#0b1020;color:#e6eef8}
+.app{max-width:720px;margin:auto;height:100vh;display:flex;flex-direction:column}
+header{padding:14px 16px;display:flex;align-items:center;gap:12px}
+.brand{font-weight:700;font-size:18px}
+.subtitle{font-size:12px;color:#94a3b8}
+main{flex:1;overflow:auto;padding:12px}
+.msg{max-width:80%;margin:8px 0;padding:12px;border-radius:14px}
+.user{align-self:flex-end;background:linear-gradient(135deg,#7c3aed,#06b6d4)}
+.ai{align-self:flex-start;background:#111827}
+.meta{font-size:12px;color:#94a3b8;margin-bottom:4px}
+.composer{padding:12px;border-top:1px solid rgba(255,255,255,.05)}
+input{width:100%;padding:12px;border-radius:12px;border:1px solid #222;background:#000;color:white}
+button{margin-top:8px;padding:10px;border-radius:12px;border:none;background:#7c3aed;color:white;font-weight:700}
+.loading{height:10px;width:40%;background:#333;border-radius:6px}
+</style>
 </head>
 <body>
-
 <div class="app">
-  <header>
-    <div>
-      <div class="brand">Cyberpets AI</div>
-      <div class="subtitle">NFT-gated assistant</div>
-    </div>
-    <div class="connect-row">
-      <button id="connectBtn" class="btn">Connect Wallet</button>
-    </div>
-  </header>
-
-  <main class="chat-area">
-    <div class="system-card">
-      Status: <span id="status">Not connected</span>
-    </div>
-    <div class="messages" id="messages"></div>
-  </main>
-
-  <div class="composer">
-    <div class="composer-inner">
-      <input id="input" class="input" placeholder="Send a message..." disabled />
-      <button id="send" class="send" disabled>Send</button>
-    </div>
-    <div style="max-width:720px;margin:8px auto;display:flex;justify-content:space-between">
-      <div class="muted">Chat access: <span id="accessState">Locked</span></div>
-    </div>
+<header>
+  <div>
+    <div class="brand">Cyberpets AI</div>
+    <div class="subtitle">NFT-gated assistant</div>
   </div>
+  <button id="connect">Connect Wallet</button>
+</header>
+
+<main id="chat"></main>
+
+<div class="composer">
+  <input id="input" disabled placeholder="NFT required"/>
+  <button id="send" disabled>Send</button>
+</div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
-
 <script>
-const CONFIG = {
-  NFT_CONTRACT: "0x1C37df48Fa365B1802D0395eE9F7Db842726Eb81",
-  CHAIN_ID: 137
-};
-
-const ERC721_ABI = [
-  "function balanceOf(address owner) view returns (uint256)"
+const NFT_CONTRACT="0x1C37df48Fa365B1802D0395eE9F7Db842726Eb81";
+const ABI=[
+ "function balanceOf(address owner)view returns(uint256)"
 ];
 
-const connectBtn = document.getElementById("connectBtn");
-const sendBtn = document.getElementById("send");
-const inputEl = document.getElementById("input");
-const statusEl = document.getElementById("status");
-const accessStateEl = document.getElementById("accessState");
-const messages = document.getElementById("messages");
+const chat=document.getElementById("chat");
+const input=document.getElementById("input");
+const send=document.getElementById("send");
+const connect=document.getElementById("connect");
 
-let provider, signer, userAddress;
+let signer,address;
 
-function pushMessage(who, text) {
-  const el = document.createElement("div");
-  el.className = "msg " + (who === "User" ? "user" : "ai");
-  el.innerHTML = `<div class="meta">${who}</div><div>${text}</div>`;
-  messages.appendChild(el);
-  messages.scrollTop = messages.scrollHeight;
-  return el;
+function msg(who,text){
+ const d=document.createElement("div");
+ d.className="msg "+(who==="You"?"user":"ai");
+ d.innerHTML=`<div class=meta>${who}</div>${text}`;
+ chat.appendChild(d);
+ chat.scrollTop=chat.scrollHeight;
+ return d;
 }
 
-async function connectWallet() {
-  if (!window.ethereum) return alert("Wallet not found");
-  await ethereum.request({ method: "eth_requestAccounts" });
-  provider = new ethers.providers.Web3Provider(window.ethereum);
-  signer = provider.getSigner();
-  userAddress = await signer.getAddress();
-  statusEl.textContent = "Connected: " + userAddress.slice(0,6) + "...";
+async function connectWallet(){
+ if(!window.ethereum)return alert("Install MetaMask");
+ const provider=new ethers.providers.Web3Provider(window.ethereum);
+ await provider.send("eth_requestAccounts",[]);
+ signer=provider.getSigner();
+ address=(await signer.getAddress()).toLowerCase();
 
-  const net = await provider.getNetwork();
-  if (net.chainId !== CONFIG.CHAIN_ID) {
-    alert("Please switch to Polygon");
-    return;
-  }
+ // Polygon only
+ await window.ethereum.request({
+  method:"wallet_switchEthereumChain",
+  params:[{chainId:"0x89"}]
+ });
 
-  const contract = new ethers.Contract(CONFIG.NFT_CONTRACT, ERC721_ABI, provider);
-  const bal = await contract.balanceOf(userAddress);
+ const contract=new ethers.Contract(NFT_CONTRACT,ABI,provider);
+ const bal=await contract.balanceOf(address);
+ if(bal.eq(0)){
+   msg("System","❌ NFT required");
+   return;
+ }
 
-  if (bal.toNumber() > 0) {
-    await fetch("/api/session", { method: "POST" });
-    accessStateEl.textContent = "Unlocked";
-    inputEl.disabled = false;
-    sendBtn.disabled = false;
-    pushMessage("System", "Chat unlocked — welcome!");
-  } else {
-    pushMessage("System", "NFT required to access chat.");
-  }
+ // Cookie auth
+ await fetch("/api/auth",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({address})});
+
+ input.disabled=false;
+ send.disabled=false;
+ msg("System","🔓 Chat unlocked");
 }
 
-async function sendMessage() {
-  const text = inputEl.value.trim();
-  if (!text) return;
-  pushMessage("User", text);
-  inputEl.value = "";
-  sendBtn.disabled = true;
+async function sendMsg(){
+ const text=input.value.trim();
+ if(!text)return;
+ input.value="";
+ msg("You",text);
+ const bubble=msg("AI","<div class=loading></div>");
 
-  const aiEl = pushMessage("AI", "<div class='loading'></div>");
+ const r=await fetch("/api/chat",{
+  method:"POST",
+  headers:{"Content-Type":"application/json"},
+  credentials:"include",
+  body:JSON.stringify({input:text})
+ });
 
-  const resp = await fetch("/api/chat", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ input: text })
-  });
-
-  aiEl.innerHTML = "<div class='meta'>AI</div>";
-  const reader = resp.body.getReader();
-  const decoder = new TextDecoder();
-  let full = "";
-
-  while (true) {
-    const { value, done } = await reader.read();
-    if (done) break;
-    full += decoder.decode(value, { stream: true });
-    aiEl.innerHTML = `<div class="meta">AI</div><div>${full}</div>`;
-    messages.scrollTop = messages.scrollHeight;
-  }
-
-  sendBtn.disabled = false;
+ const reader=r.body.getReader();
+ const dec=new TextDecoder();
+ bubble.innerHTML="<div class=meta>AI</div>";
+ while(true){
+  const {value,done}=await reader.read();
+  if(done)break;
+  bubble.innerHTML+=dec.decode(value);
+  chat.scrollTop=chat.scrollHeight;
+ }
 }
 
-connectBtn.onclick = connectWallet;
-sendBtn.onclick = sendMessage;
-
-pushMessage("System", "Connect your wallet to begin.");
+connect.onclick=connectWallet;
+send.onclick=sendMsg;
 </script>
-
 </body>
 </html>
