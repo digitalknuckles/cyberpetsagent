@@ -1,4 +1,6 @@
-export const config = { runtime: "edge" };
+export const config = {
+  runtime: 'nodejs', // instead of 'edge'
+};
 
 interface ChatRequest { input: string; }
 
