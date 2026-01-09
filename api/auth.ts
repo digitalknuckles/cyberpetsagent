@@ -1,7 +1,6 @@
 export const config = {
-  runtime: "edge",
+  runtime: 'nodejs', // instead of 'edge'
 };
-
 interface AuthRequest {
   address: string;
   signature?: string;
