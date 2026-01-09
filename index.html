@@ -10,188 +10,155 @@
       --glass: rgba(255,255,255,0.03);
       --bubble-user: linear-gradient(135deg,#7c3aed,#06b6d4);
       --bubble-ai: #111827;
-      font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial;
     }
     html,body{height:100%;margin:0;background:linear-gradient(180deg,#071024,#071022);color:#e6eef8}
     .app{max-width:720px;margin:0 auto;height:100vh;display:flex;flex-direction:column}
-    header{position:relative;padding:14px 16px;display:flex;align-items:center;gap:12px}
-    .brand{font-weight:700;font-size:18px;letter-spacing:0.4px}
+    header{padding:14px 16px;display:flex;align-items:center;gap:12px}
+    .brand{font-weight:700;font-size:18px}
     .subtitle{font-size:12px;color:var(--muted)}
-    .pfp{position:absolute;right:12px;top:8px;width:48px;height:48px;border-radius:999px;overflow:hidden;border:2px solid rgba(255,255,255,0.06);background:linear-gradient(180deg,#0b1220,#071022);display:flex;align-items:center;justify-content:center}
-    .pfp img{width:100%;height:100%;object-fit:cover}
-    .connect-row{display:flex;gap:8px;margin-left:auto}
-    button.btn{background:var(--accent);border:none;padding:8px 12px;border-radius:12px;color:white;font-weight:600;cursor:pointer;box-shadow:0 6px 18px rgba(124,58,237,0.12)}
-    button.ghost{background:transparent;border:1px solid rgba(255,255,255,0.06);padding:8px 10px;border-radius:10px;color:var(--muted)}
-    main.chat-area{flex:1;display:flex;flex-direction:column;padding:8px 12px 90px;gap:12px;overflow:auto}
+    .connect-row{margin-left:auto}
+    button.btn{background:var(--accent);border:none;padding:8px 12px;border-radius:12px;color:white;font-weight:600;cursor:pointer}
+    main.chat-area{flex:1;padding:8px 12px 90px;overflow:auto}
     .system-card{background:var(--glass);padding:12px;border-radius:12px;color:var(--muted);font-size:13px}
-    .messages{display:flex;flex-direction:column;gap:10px}
-    .msg{max-width:86%;padding:12px;border-radius:14px;line-height:1.35;font-size:15px}
-    .msg.ai{background:var(--bubble-ai);align-self:flex-start;border-top-left-radius:6px}
-    .msg.user{background:var(--bubble-user);align-self:flex-end;color:white;border-top-right-radius:6px}
+    .messages{display:flex;flex-direction:column;gap:10px;margin-top:10px}
+    .msg{max-width:86%;padding:12px;border-radius:14px;font-size:15px}
+    .msg.ai{background:var(--bubble-ai);align-self:flex-start}
+    .msg.user{background:var(--bubble-user);align-self:flex-end;color:white}
     .meta{font-size:12px;color:var(--muted);margin-bottom:6px}
-    .composer{position:fixed;left:0;right:0;bottom:0;background:linear-gradient(180deg, rgba(11,16,32,0.9), rgba(7,10,18,0.95));backdrop-filter:blur(6px);padding:10px}
-    .composer-inner{max-width:720px;margin:0 auto;display:flex;gap:8px;padding:6px}
-    .input{flex:1;background:transparent;border:1px solid rgba(255,255,255,0.06);padding:12px;border-radius:14px;color:inherit}
-    .send{background:linear-gradient(135deg,#06b6d4,#7c3aed);border:none;padding:10px 12px;border-radius:12px;color:white;font-weight:700}
+    .composer{position:fixed;bottom:0;left:0;right:0;padding:10px;background:#070a12}
+    .composer-inner{max-width:720px;margin:0 auto;display:flex;gap:8px}
+    .input{flex:1;background:transparent;border:1px solid rgba(255,255,255,0.1);padding:12px;border-radius:14px;color:white}
+    .send{background:linear-gradient(135deg,#06b6d4,#7c3aed);border:none;padding:10px 14px;border-radius:12px;color:white;font-weight:700}
     .muted{color:var(--muted);font-size:13px}
-    @media (max-width:420px){.pfp{width:42px;height:42px}.brand{font-size:16px}}
-    .loading{height:10px;width:40%;background:linear-gradient(90deg,rgba(255,255,255,0.03),rgba(255,255,255,0.06),rgba(255,255,255,0.03));border-radius:6px}
+    .loading{height:10px;width:40%;background:rgba(255,255,255,0.08);border-radius:6px}
   </style>
 </head>
 <body>
+
 <div class="app">
   <header>
     <div>
       <div class="brand">Cyberpets AI</div>
-      <div class="subtitle">NFT-gated assistant — interactive & mobile-first</div>
+      <div class="subtitle">NFT-gated assistant</div>
     </div>
-    <div class="connect-row" id="connectRow">
+    <div class="connect-row">
       <button id="connectBtn" class="btn">Connect Wallet</button>
-      <button id="signBtn" class="ghost" style="display:none">Sign Auth</button>
-    </div>
-    <div class="pfp" id="pfp" title="Your NFT PFP" style="display:none">
-      <img id="pfpImg" src="" alt="pfp"/>
     </div>
   </header>
 
   <main class="chat-area">
-    <div id="systemCard" class="system-card">Status: <span id="status">Not connected</span></div>
+    <div class="system-card">
+      Status: <span id="status">Not connected</span>
+    </div>
     <div class="messages" id="messages"></div>
   </main>
 
   <div class="composer">
     <div class="composer-inner">
-      <input id="input" class="input" placeholder="Send a message..." aria-label="Message input" disabled />
+      <input id="input" class="input" placeholder="Send a message..." disabled />
       <button id="send" class="send" disabled>Send</button>
     </div>
-    <div style="max-width:720px;margin:8px auto 18px;display:flex;justify-content:space-between">
-      <div class="muted">NFT required: <span id="requiredNft">—</span></div>
+    <div style="max-width:720px;margin:8px auto;display:flex;justify-content:space-between">
       <div class="muted">Chat access: <span id="accessState">Locked</span></div>
     </div>
   </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@walletconnect/web3-provider@1.8.0/dist/umd/index.min.js"></script>
 
 <script>
 const CONFIG = {
-  NETWORK: "polygon",
-  CHAIN_ID: 137,
   NFT_CONTRACT: "0x1C37df48Fa365B1802D0395eE9F7Db842726Eb81",
-  NFT_TOKEN_ID: null,
-
-  // ✅ ALWAYS relative
-  API_BASE: "/api",
+  CHAIN_ID: 137
 };
 
 const ERC721_ABI = [
-  'function ownerOf(uint256 tokenId) view returns (address)',
-  'function tokenURI(uint256 tokenId) view returns (string)',
-  'function balanceOf(address owner) view returns (uint256)',
-  'function tokenOfOwnerByIndex(address owner, uint256 index) view returns (uint256)'
+  "function balanceOf(address owner) view returns (uint256)"
 ];
 
-const connectBtn = document.getElementById('connectBtn');
-const sendBtn = document.getElementById('send');
-const inputEl = document.getElementById('input');
-const statusEl = document.getElementById('status');
-const accessStateEl = document.getElementById('accessState');
-const requiredNftEl = document.getElementById('requiredNft');
-const pfpContainer = document.getElementById('pfp');
-const pfpImg = document.getElementById('pfpImg');
-const messagesContainer = document.getElementById('messages');
+const connectBtn = document.getElementById("connectBtn");
+const sendBtn = document.getElementById("send");
+const inputEl = document.getElementById("input");
+const statusEl = document.getElementById("status");
+const accessStateEl = document.getElementById("accessState");
+const messages = document.getElementById("messages");
 
-requiredNftEl.textContent = `${CONFIG.NFT_CONTRACT} ${CONFIG.NFT_TOKEN_ID ? '/ #' + CONFIG.NFT_TOKEN_ID : '(any token)'}`;
+let provider, signer, userAddress;
 
-let web3Provider=null, signer=null, userAddress=null, network=null;
+function pushMessage(who, text) {
+  const el = document.createElement("div");
+  el.className = "msg " + (who === "User" ? "user" : "ai");
+  el.innerHTML = `<div class="meta">${who}</div><div>${text}</div>`;
+  messages.appendChild(el);
+  messages.scrollTop = messages.scrollHeight;
+  return el;
+}
 
-function short(addr){return addr?addr.slice(0,6)+'...'+addr.slice(-4):''}
-function ipfsToHttps(url){if(!url)return url;if(url.startsWith('ipfs://'))return url.replace('ipfs://','https://ipfs.io/ipfs/');if(url.startsWith('//ipfs/'))return 'https:'+url;return url;}
-function escapeHtml(u=''){return String(u).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('\n','<br/>');}
-function scrollMessagesToBottom(){messagesContainer.scrollTop=messagesContainer.scrollHeight;}
-function pushMessage(who,text){const el=document.createElement('div');el.className='msg '+(who==='User'?'user':'ai');const meta=document.createElement('div');meta.className='meta';meta.textContent=who==='User'?'You':'AI Assistant';const body=document.createElement('div');body.innerHTML=escapeHtml(text);el.appendChild(meta);el.appendChild(body);messagesContainer.appendChild(el);setTimeout(scrollMessagesToBottom,60);return el;}
+async function connectWallet() {
+  if (!window.ethereum) return alert("Wallet not found");
+  await ethereum.request({ method: "eth_requestAccounts" });
+  provider = new ethers.providers.Web3Provider(window.ethereum);
+  signer = provider.getSigner();
+  userAddress = await signer.getAddress();
+  statusEl.textContent = "Connected: " + userAddress.slice(0,6) + "...";
 
-async function connectWallet(){
-  if(window.ethereum){
-    try{
-      await window.ethereum.request({ method:'eth_requestAccounts' });
-      web3Provider=new ethers.providers.Web3Provider(window.ethereum);
-      signer=web3Provider.getSigner();
-      userAddress=(await signer.getAddress()).toLowerCase();
-      network=await web3Provider.getNetwork();
-      await onConnected(); return;
-    }catch(e){console.error('Metamask connect failed',e);}
+  const net = await provider.getNetwork();
+  if (net.chainId !== CONFIG.CHAIN_ID) {
+    alert("Please switch to Polygon");
+    return;
   }
-  try{
-    const WalletConnectProvider=window.WalletConnectProvider.default;
-    const wcProvider=new WalletConnectProvider({rpc:{1:'https://cloudflare-eth.com'},qrcode:true});
-    await wcProvider.enable();
-    web3Provider=new ethers.providers.Web3Provider(wcProvider);
-    signer=web3Provider.getSigner();
-    userAddress=(await signer.getAddress()).toLowerCase();
-    network=await web3Provider.getNetwork();
-    await onConnected();
-  }catch(e){console.error('WalletConnect failed',e);alert('Could not connect wallet.');}
+
+  const contract = new ethers.Contract(CONFIG.NFT_CONTRACT, ERC721_ABI, provider);
+  const bal = await contract.balanceOf(userAddress);
+
+  if (bal.toNumber() > 0) {
+    await fetch("/api/session", { method: "POST" });
+    accessStateEl.textContent = "Unlocked";
+    inputEl.disabled = false;
+    sendBtn.disabled = false;
+    pushMessage("System", "Chat unlocked — welcome!");
+  } else {
+    pushMessage("System", "NFT required to access chat.");
+  }
 }
 
-window.addEventListener('load',async()=>{if(window.ethereum && window.ethereum.selectedAddress){web3Provider=new ethers.providers.Web3Provider(window.ethereum);signer=web3Provider.getSigner();userAddress=(await signer.getAddress()).toLowerCase();network=await web3Provider.getNetwork();await onConnected();}});
+async function sendMessage() {
+  const text = inputEl.value.trim();
+  if (!text) return;
+  pushMessage("User", text);
+  inputEl.value = "";
+  sendBtn.disabled = true;
 
-async function signAuthMessage(){
-  if(!signer)return alert('Connect wallet first');
-  try{
-    const nonceResp=await fetch(`${CONFIG.API_BASE}/api/auth`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({address:userAddress})});
-    const {nonce}=await nonceResp.json();
-    if(!nonce)throw new Error('No nonce returned');
-    const sig=await signer.signMessage(nonce);
-    const verifyResp=await fetch(`${CONFIG.API_BASE}/api/auth`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({address:userAddress,signature:sig,nonce})});
-    const result=await verifyResp.json();
-    if(result.ok)alert('✅ Session created! You can now chat without signing every message.');
-    else alert('❌ Session creation failed: '+JSON.stringify(result));
-  }catch(err){console.error('signAuthMessage error:',err);alert('Error during signing/auth session creation. See console.');}
+  const aiEl = pushMessage("AI", "<div class='loading'></div>");
+
+  const resp = await fetch("/api/chat", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ input: text })
+  });
+
+  aiEl.innerHTML = "<div class='meta'>AI</div>";
+  const reader = resp.body.getReader();
+  const decoder = new TextDecoder();
+  let full = "";
+
+  while (true) {
+    const { value, done } = await reader.read();
+    if (done) break;
+    full += decoder.decode(value, { stream: true });
+    aiEl.innerHTML = `<div class="meta">AI</div><div>${full}</div>`;
+    messages.scrollTop = messages.scrollHeight;
+  }
+
+  sendBtn.disabled = false;
 }
 
-async function onConnected(){
-  statusEl.textContent=`Connected: ${short(userAddress)}`;
-  connectBtn.textContent='Connected';
-  await signAuthMessage();
-  const contract=new ethers.Contract(CONFIG.NFT_CONTRACT,ERC721_ABI,web3Provider);
-  let owns=false;
-  try{
-    if(CONFIG.NFT_TOKEN_ID!=null){const owner=(await contract.ownerOf(CONFIG.NFT_TOKEN_ID)).toLowerCase();owns=(owner===userAddress);}
-    if(!owns){const bal=await contract.balanceOf(userAddress);owns=bal&&bal.toNumber&&bal.toNumber()>0;}
-  }catch(e){console.warn('Ownership check failed',e);}
-  if(owns)grantAccess(contract);else lockAccess();
-}
+connectBtn.onclick = connectWallet;
+sendBtn.onclick = sendMessage;
 
-async function grantAccess(contract){
-  accessStateEl.textContent='Unlocked';inputEl.disabled=false;sendBtn.disabled=false;
-  try{
-    let tokenId=CONFIG.NFT_TOKEN_ID!=null?CONFIG.NFT_TOKEN_ID:null;
-    if(!tokenId && contract.tokenOfOwnerByIndex){try{tokenId=await contract.tokenOfOwnerByIndex(userAddress,0);if(tokenId.toString)tokenId=tokenId.toString();}catch{}}
-    if(tokenId){let uri=ipfsToHttps(await contract.tokenURI(tokenId));const metaRaw=await fetch(uri,{cache:'no-store'});if(metaRaw.ok){const meta=await metaRaw.json();let img=meta.image||meta.image_url||meta.gif||'';img=ipfsToHttps(img);if(img){pfpImg.src=img;pfpContainer.style.display='block';}}}
-  }catch(e){console.warn('PFP fetch failed',e);}
-  window.addEventListener('keydown',e=>{if(e.key==='Enter' && !sendBtn.disabled)sendMessage();});
-  pushMessage('System','Chat unlocked — hello! Ask anything related to your NFT or community.');
-}
-
-function lockAccess(){accessStateEl.textContent='Locked';inputEl.disabled=true;sendBtn.disabled=true;pushMessage('System','Access locked — wallet does not hold the required NFT.');}
-
-async function sendMessage(){
-  const text=inputEl.value.trim();if(!text)return;pushMessage('User',text);inputEl.value='';sendBtn.disabled=true;
-  const placeholder=pushMessage('AI','<div class="loading"></div>');
-  try{
-    const resp=await fetch(`${CONFIG.API_BASE}/api/chat`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({input:text})});
-    if(placeholder.parentNode)placeholder.parentNode.removeChild(placeholder);
-    if(!resp.ok){pushMessage('AI',`AI backend error: ${resp.status}`);return;}
-    const data=await resp.json();
-    pushMessage('AI',data.text||'No response');
-  }catch(e){console.error('sendMessage error',e);pushMessage('AI','Error contacting AI backend.');}
-  finally{sendBtn.disabled=false;}
-}
-
-connectBtn.onclick=connectWallet;sendBtn.onclick=sendMessage;
-pushMessage('System','Welcome — click Connect Wallet. Chat will unlock only if your wallet holds the configured NFT.');
+pushMessage("System", "Connect your wallet to begin.");
 </script>
+
 </body>
 </html>
