@@ -1,34 +1,32 @@
-import { NextApiRequest, NextApiResponse } from 'next';
-import { randomBytes } from 'crypto';
+import type { NextApiRequest, NextApiResponse } from "next";
 
-const nonces: Record<string, string> = {}; // simple in-memory store (reset on redeploy)
-
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method !== 'POST') return res.status(405).json({ error: 'Method Not Allowed' });
+/**
+ * Cookie-only session bootstrap
+ * No wallet signing, no nonces, no crypto
+ */
+export default function handler(
+  req: NextApiRequest,
+  res: NextApiResponse
+) {
+  if (req.method !== "POST") {
+    return res.status(405).json({ error: "Method Not Allowed" });
+  }
 
   try {
-    const { address, signature, nonce } = req.body;
+    // Create a lightweight session token
+    const sessionId =
+      "sess_" + Math.random().toString(36).slice(2) + "_" + Date.now();
 
-    // Step 1: if only address is sent, return a nonce
-    if (address && !signature && !nonce) {
-      const newNonce = randomBytes(16).toString('hex');
-      nonces[address.toLowerCase()] = newNonce;
-      return res.status(200).json({ nonce: newNonce });
-    }
+    res.setHeader(
+      "Set-Cookie",
+      `session=${sessionId}; Path=/; HttpOnly; SameSite=Lax; ${
+        process.env.NODE_ENV === "production" ? "Secure;" : ""
+      } Max-Age=${60 * 60 * 24}`
+    );
 
-    // Step 2: if address + signature + nonce are sent, verify
-    if (address && signature && nonce) {
-      const stored = nonces[address.toLowerCase()];
-      if (!stored || stored !== nonce) return res.status(400).json({ ok: false, error: 'Invalid nonce' });
-
-      // NOTE: full signature verification requires ethers.js or crypto — for simplicity, we'll just accept it here
-      delete nonces[address.toLowerCase()]; // one-time use
-      return res.status(200).json({ ok: true });
-    }
-
-    res.status(400).json({ error: 'Invalid request' });
+    return res.status(200).json({ ok: true });
   } catch (err) {
-    console.error('auth error', err);
-    res.status(500).json({ error: 'Internal Server Error' });
+    console.error("auth error:", err);
+    return res.status(500).json({ error: "Internal Server Error" });
   }
 }
