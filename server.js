@@ -7,7 +7,7 @@ app.use(express.json());
 app.use(cookieParser());
 
 // Load environment variables
-const OPENAI_API_KEY2 = process.env.OPENAI_API_KEY2;
+const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 const PORT = process.env.PORT || 3000;
 
 // --- Helper: stream OpenAI completion ---
@@ -19,7 +19,7 @@ async function streamOpenAIResponse(prompt, res) {
   const openaiResp = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
     headers: {
-      Authorization: `Bearer ${OPENAI_API_KEY2}`,
+      Authorization: `Bearer ${OPENAI_API_KEY}`,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
