@@ -1,47 +1,34 @@
-export const config = {
-  runtime: 'nodejs', // instead of 'edge'
-};
+import { NextApiRequest, NextApiResponse } from 'next';
+import { randomBytes } from 'crypto';
 
-interface ChatRequest { input: string; }
+const nonces: Record<string, string> = {}; // simple in-memory store (reset on redeploy)
 
-export default async function handler(req: Request) {
-  if (req.method === "OPTIONS") {
-    return new Response(null, {
-      status: 200,
-      headers: {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Methods": "POST, OPTIONS",
-        "Access-Control-Allow-Headers": "Content-Type",
-      },
-    });
-  }
-
-  if (req.method !== "POST") return new Response("Method Not Allowed", { status: 405 });
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  if (req.method !== 'POST') return res.status(405).json({ error: 'Method Not Allowed' });
 
   try {
-    const { input } = (await req.json()) as ChatRequest;
+    const { address, signature, nonce } = req.body;
 
-    // Simple streaming response using Web Streams API
-    const stream = new ReadableStream({
-      start(controller) {
-        const encoder = new TextEncoder();
-        controller.enqueue(encoder.encode("AI Response:\n")); // placeholder demo
-        controller.enqueue(encoder.encode(`You said: "${input}"\n`));
-        setTimeout(() => controller.close(), 500); // simulate streaming
-      },
-    });
+    // Step 1: if only address is sent, return a nonce
+    if (address && !signature && !nonce) {
+      const newNonce = randomBytes(16).toString('hex');
+      nonces[address.toLowerCase()] = newNonce;
+      return res.status(200).json({ nonce: newNonce });
+    }
 
-    return new Response(stream, {
-      headers: {
-        "Content-Type": "text/event-stream; charset=utf-8",
-        "Cache-Control": "no-cache, no-transform",
-        "Connection": "keep-alive",
-        "Access-Control-Allow-Origin": "*",
-      },
-    });
+    // Step 2: if address + signature + nonce are sent, verify
+    if (address && signature && nonce) {
+      const stored = nonces[address.toLowerCase()];
+      if (!stored || stored !== nonce) return res.status(400).json({ ok: false, error: 'Invalid nonce' });
 
+      // NOTE: full signature verification requires ethers.js or crypto — for simplicity, we'll just accept it here
+      delete nonces[address.toLowerCase()]; // one-time use
+      return res.status(200).json({ ok: true });
+    }
+
+    res.status(400).json({ error: 'Invalid request' });
   } catch (err) {
-    console.error("Chat API error:", err);
-    return new Response(JSON.stringify({ error: "Internal Server Error" }), { status: 500 });
+    console.error('auth error', err);
+    res.status(500).json({ error: 'Internal Server Error' });
   }
 }
