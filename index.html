@@ -5,7 +5,6 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
 <title>NFT-Gated AI Chat — Cyberpets</title>
 <style>
-  
 :root{
   --bg:#0b1020; --card:#0f1724; --muted:#94a3b8; --accent:#7c3aed;
   --glass: rgba(255,255,255,0.03);
@@ -23,20 +22,31 @@ header{position:relative;padding:14px 16px;display:flex;align-items:center;gap:1
 .connect-row{display:flex;gap:8px;margin-left:auto}
 button.btn{background:var(--accent);border:none;padding:8px 12px;border-radius:12px;color:white;font-weight:600;cursor:pointer;box-shadow:0 6px 18px rgba(124,58,237,0.12)}
 button.ghost{background:transparent;border:1px solid rgba(255,255,255,0.06);padding:8px 10px;border-radius:10px;color:var(--muted)}
-main.chat-area{flex:1;display:flex;flex-direction:column;padding:8px 12px 90px;gap:12px;overflow:auto}
+main.chat-area{flex:1;display:flex;flex-direction:column-reverse;overflow-y:auto;padding:12px;gap:10px}
 .system-card{background:var(--glass);padding:12px;border-radius:12px;color:var(--muted);font-size:13px}
-.messages{display:flex;flex-direction:column;gap:10px}
+.messages{display:flex;flex-direction:column-reverse;gap:10px}
 .msg{max-width:86%;padding:12px;border-radius:14px;line-height:1.35;font-size:15px}
 .msg.ai{background:var(--bubble-ai);align-self:flex-start;border-top-left-radius:6px}
 .msg.user{background:var(--bubble-user);align-self:flex-end;color:white;border-top-right-radius:6px}
 .meta{font-size:12px;color:var(--muted);margin-bottom:6px}
-.composer{position:fixed;left:0;right:0;bottom:0;background:linear-gradient(180deg, rgba(11,16,32,0.9), rgba(7,10,18,0.95));backdrop-filter:blur(6px);padding:10px}
+.composer{position:fixed;left:0;right:0;bottom:0;background:linear-gradient(180deg, rgba(11,16,32,0.9), rgba(7,10,18,0.95));backdrop-filter:blur(6px);padding:10px;display:flex;flex-direction:column}
 .composer-inner{max-width:720px;margin:0 auto;display:flex;gap:8px;padding:6px}
 .input{flex:1;background:transparent;border:1px solid rgba(255,255,255,0.06);padding:12px;border-radius:14px;color:inherit}
 .send{background:linear-gradient(135deg,#06b6d4,#7c3aed);border:none;padding:10px 12px;border-radius:12px;color:white;font-weight:700}
-.muted{color:var(--muted);font-size:13px}
+.muted{color:var(--muted);font-size:13px;margin-top:4px;text-align:center}
 @media (max-width:420px){.pfp{width:42px;height:42px}.brand{font-size:16px}}
-.loading{height:10px;width:40%;background:linear-gradient(90deg,rgba(255,255,255,0.03),rgba(255,255,255,0.06),rgba(255,255,255,0.03));border-radius:6px}
+
+/* Spinner for loading */
+.spinner {
+  border: 3px solid rgba(255,255,255,0.1);
+  border-top: 3px solid var(--accent);
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  animation: spin 0.8s linear infinite;
+  margin: 0 auto;
+}
+@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 </style>
 </head>
 <body>
@@ -55,8 +65,8 @@ main.chat-area{flex:1;display:flex;flex-direction:column;padding:8px 12px 90px;g
   </header>
 
   <main class="chat-area">
-    <div id="systemCard" class="system-card">Status: <span id="status">Not connected</span></div>
     <div class="messages" id="messages"></div>
+    <div id="systemCard" class="system-card">Status: <span id="status">Not connected</span></div>
   </main>
 
   <div class="composer">
@@ -64,22 +74,18 @@ main.chat-area{flex:1;display:flex;flex-direction:column;padding:8px 12px 90px;g
       <input id="input" class="input" placeholder="Send a message..." aria-label="Message input" disabled />
       <button id="send" class="send" disabled>Send</button>
     </div>
-    <div style="max-width:720px;margin:8px auto 18px;display:flex;justify-content:space-between">
-      <div class="muted">NFT required: <span id="requiredNft">—</span></div>
-      <div class="muted">Chat access: <span id="accessState">Locked</span></div>
+    <div class="muted">
+      NFT required: <span id="requiredNft">—</span> | Chat access: <span id="accessState">Locked</span>
     </div>
   </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
-
-
 <script>
 const CONFIG = {
-  
   NFT_CONTRACT: "0x1C37df48Fa365B1802D0395eE9F7Db842726Eb81",
-  NFT_TOKEN_ID: null, // specific token ID or null for any
-  API_BASE: "" // same origin
+  NFT_TOKEN_ID: null,
+  API_BASE: ""
 };
 
 const connectBtn = document.getElementById('connectBtn');
@@ -97,15 +103,23 @@ requiredNftEl.textContent = CONFIG.NFT_CONTRACT + (CONFIG.NFT_TOKEN_ID ? " / #" 
 let web3Provider=null, signer=null, userAddress=null;
 
 function short(addr){return addr?addr.slice(0,6)+'...'+addr.slice(-4):''}
-function ipfsToHttps(url){if(!url) return url; if(url.startsWith('ipfs://')) return url.replace('ipfs://','https://ipfs.io/ipfs/'); return url;}
-function escapeHtml(u=''){return String(u).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('\n','<br/>');}
-function scrollMessagesToBottom(){messagesContainer.scrollTop=messagesContainer.scrollHeight;}
-function pushMessage(who,text){
+function escapeHtml(u=''){return String(u).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;')}
+function scrollMessages(){messagesContainer.scrollTop = messagesContainer.scrollHeight;}
+
+function pushMessage(who,text,isLoading=false){
   const el=document.createElement('div');el.className='msg '+(who==='User'?'user':'ai');
   const meta=document.createElement('div');meta.className='meta';meta.textContent=who==='User'?'You':'AI Assistant';
-  const body=document.createElement('div');body.innerHTML=escapeHtml(text);
-  el.appendChild(meta);el.appendChild(body);messagesContainer.appendChild(el);
-  setTimeout(scrollMessagesToBottom,60);return el;
+  const body=document.createElement('div');
+  if(isLoading){
+    const spinner = document.createElement('div'); spinner.className='spinner';
+    body.appendChild(spinner);
+  } else {
+    body.innerHTML = escapeHtml(text);
+  }
+  el.appendChild(meta); el.appendChild(body);
+  messagesContainer.prepend(el); // prepend for reverse flow
+  scrollMessages();
+  return el;
 }
 
 // --- Wallet + NFT access ---
@@ -119,15 +133,13 @@ async function connectWallet(){
     statusEl.textContent = `Connected: ${short(userAddress)}`;
     connectBtn.textContent = "Connected";
 
-    // request session cookie
     const authResp = await fetch(`${CONFIG.API_BASE}/api/auth`, {
       method:'POST',
       headers:{'Content-Type':'application/json'},
       body: JSON.stringify({ address:userAddress }),
       credentials:'include'
     });
-    const authData = await authResp.json();
-    console.log('Session created', authData);
+    await authResp.json();
 
     checkNFT();
   } catch(err){console.error(err); alert('Wallet connection failed');}
@@ -138,27 +150,25 @@ async function checkNFT(){
   try{
     const contract = new ethers.Contract(CONFIG.NFT_CONTRACT, [
       'function ownerOf(uint256 tokenId) view returns (address)',
-      'function balanceOf(address owner) view returns (uint256)',
-      'function tokenOfOwnerByIndex(address owner,uint256 index) view returns (uint256)',
-      'function tokenURI(uint256 tokenId) view returns (string)'
+      'function balanceOf(address owner) view returns (uint256)'
     ], web3Provider);
 
-    let owns = false;
+    let owns=false;
     if(CONFIG.NFT_TOKEN_ID){
       const owner = (await contract.ownerOf(CONFIG.NFT_TOKEN_ID)).toLowerCase();
-      owns = owner === userAddress;
+      owns = owner===userAddress;
     } else {
       const balance = await contract.balanceOf(userAddress);
-      owns = balance.toNumber() > 0;
+      owns = balance.toNumber()>0;
     }
 
     if(owns){
-      accessStateEl.textContent = 'Unlocked';
-      inputEl.disabled = false; sendBtn.disabled = false;
+      accessStateEl.textContent='Unlocked';
+      inputEl.disabled=false; sendBtn.disabled=false;
       pushMessage('System','Chat unlocked — hello! Ask anything.');
     } else {
-      accessStateEl.textContent = 'Locked';
-      inputEl.disabled = true; sendBtn.disabled = true;
+      accessStateEl.textContent='Locked';
+      inputEl.disabled=true; sendBtn.disabled=true;
       pushMessage('System','Access locked — wallet does not hold the required NFT.');
     }
   } catch(err){console.error(err);}
@@ -166,9 +176,10 @@ async function checkNFT(){
 
 // --- Send chat message ---
 async function sendMessage(){
-  const text = inputEl.value.trim(); if(!text) return;
+  const text=inputEl.value.trim(); if(!text) return;
   pushMessage('User',text); inputEl.value=''; sendBtn.disabled=true;
-  const placeholder = pushMessage('AI','<div class="loading"></div>');
+
+  const placeholder = pushMessage('AI','',true);
 
   try{
     const resp = await fetch(`${CONFIG.API_BASE}/api/chat`,{
@@ -179,20 +190,20 @@ async function sendMessage(){
     });
 
     if(!resp.ok){
-      placeholder.querySelector('div')?.remove();
+      placeholder.remove();
       pushMessage('AI',`AI backend error: ${resp.status}`);
       return;
     }
 
     const data = await resp.json();
-    placeholder.querySelector('div')?.remove();
+    placeholder.remove();
     pushMessage('AI', data.text || 'No response');
   } catch(err){
     console.error(err);
-    placeholder.querySelector('div')?.remove();
+    placeholder.remove();
     pushMessage('AI','Error contacting AI backend.');
   } finally{
-    sendBtn.disabled = false;
+    sendBtn.disabled=false;
   }
 }
 
