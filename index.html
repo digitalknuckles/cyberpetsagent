@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-<title>NFT-Gated AI Chat — Cyberpets</title>
+<title>Cyberpets AI Chat</title>
 <style>
 :root{
   --bg:#0b1020; 
@@ -17,28 +17,44 @@
   font-family: 'Inter', sans-serif;
 }
 html,body{height:100%;margin:0;background:var(--bg);color:#e6eef8}
-.app{max-width:720px;margin:0 auto;height:100vh;display:flex;flex-direction:column}
+body{background:url('background.png') center/cover no-repeat;position:relative;}
+body::after{
+  content:"";position:absolute;top:0;left:0;width:100%;height:100%;background:rgba(11,16,32,0.6);z-index:-1;
+}
+
+.app{max-width:720px;margin:0 auto;height:100vh;display:flex;flex-direction:column;position:relative;z-index:1;}
 header{position:relative;padding:14px 16px;display:flex;align-items:center;gap:12px}
 .brand{font-weight:700;font-size:20px;letter-spacing:0.4px;color:var(--accent)}
 .subtitle{font-size:12px;color:var(--muted)}
-.pfp{position:absolute;right:12px;top:8px;width:48px;height:48px;border-radius:999px;overflow:hidden;border:2px solid rgba(255,255,255,0.06);display:flex;align-items:center;justify-content:center;box-shadow:0 0 8px rgba(124,58,237,0.5);}
-.pfp img{width:100%;height:100%;object-fit:cover}
 .connect-row{display:flex;gap:8px;margin-left:auto}
 button.btn{background:var(--accent);border:none;padding:8px 12px;border-radius:12px;color:white;font-weight:600;cursor:pointer;box-shadow:0 6px 18px rgba(124,58,237,0.12)}
 button.ghost{background:transparent;border:1px solid rgba(255,255,255,0.06);padding:8px 10px;border-radius:10px;color:var(--muted)}
-main.chat-area{flex:1;display:flex;flex-direction:column;overflow-y:auto;padding:12px 12px 120px;gap:10px}
+main.chat-area{flex:1;display:flex;flex-direction:column;overflow-y:auto;padding:12px 12px 140px;gap:10px;position:relative;}
 .system-card{background:var(--glass);padding:12px;border-radius:12px;color:var(--muted);font-size:13px}
-.messages{display:flex;flex-direction:column;gap:10px}
+.messages{display:flex;flex-direction:column;gap:10px;position:relative;z-index:1}
 .msg{max-width:86%;padding:12px;border-radius:14px;line-height:1.35;font-size:15px;word-break:break-word;transition: all 0.2s ease;}
 .msg.ai{background:var(--bubble-ai);align-self:flex-start;border-top-left-radius:6px;color:#e6eef8}
 .msg.user{background:var(--bubble-user);align-self:flex-end;color:white;border-top-right-radius:6px}
 .meta{font-size:12px;color:var(--muted);margin-bottom:6px}
-.composer{position:fixed;left:0;right:0;bottom:0;background:linear-gradient(180deg, rgba(11,16,32,0.9), rgba(7,10,18,0.95));backdrop-filter:blur(6px);padding:10px;display:flex;flex-direction:column}
-.composer-inner{max-width:720px;margin:0 auto;display:flex;gap:8px;padding:6px}
+.composer{position:fixed;left:0;right:0;bottom:0;background:linear-gradient(180deg, rgba(11,16,32,0.9), rgba(7,10,18,0.95));backdrop-filter:blur(6px);padding:10px;display:flex;flex-direction:column;z-index:2}
+.composer-inner{max-width:720px;margin:0 auto;display:flex;gap:8px;padding:6px;position:relative}
 .input{flex:1;background:transparent;border:1px solid rgba(255,255,255,0.06);padding:12px;border-radius:14px;color:inherit}
 .send{background:linear-gradient(135deg,var(--accent2),var(--accent));border:none;padding:10px 12px;border-radius:12px;color:white;font-weight:700;cursor:pointer;transition: all 0.2s ease}
 .send:hover{transform:scale(1.05);}
 .muted{color:var(--muted);font-size:13px;margin-top:4px;text-align:center}
+
+/* Floating NFT PFP overlay */
+.nft-overlay{
+  position:fixed;top:12px;right:12px;width:64px;height:64px;border-radius:50%;overflow:hidden;border:2px solid var(--accent);
+  display:flex;align-items:center;justify-content:center;background:var(--glass);z-index:3;
+}
+.nft-overlay img{width:100%;height:100%;object-fit:cover;}
+.status-bar-container{
+  position:absolute;bottom:-8px;left:0;width:100%;height:6px;background:rgba(255,255,255,0.1);border-radius:4px;overflow:hidden;
+}
+.status-bar{
+  height:100%;width:0%;background:linear-gradient(90deg,green,red);transition:width 0.3s ease;
+}
 
 /* Spinner for AI loading */
 .spinner {
@@ -51,6 +67,17 @@ main.chat-area{flex:1;display:flex;flex-direction:column;overflow-y:auto;padding
   margin: 0 auto;
 }
 @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+/* Puppypet animation */
+.agent-avatar{
+  position:absolute;bottom:70px;left:12px;width:60px;height:60px;z-index:2;
+  pointer-events:none;
+  transform:translateY(0);
+  transition: transform 0.2s ease;
+}
+.agent-avatar img{width:100%;height:100%;object-fit:contain;}
+.agent-jitter{animation:agentJitter 0.5s infinite alternate;}
+@keyframes agentJitter{0%{transform:translateY(0);}100%{transform:translateY(-6px);}}
 </style>
 </head>
 <body>
@@ -63,15 +90,23 @@ main.chat-area{flex:1;display:flex;flex-direction:column;overflow-y:auto;padding
     <div class="connect-row" id="connectRow">
       <button id="connectBtn" class="btn">Connect Wallet</button>
     </div>
-    <div class="pfp" id="pfp" title="Your NFT PFP" style="display:none">
-      <img id="pfpImg" src="" alt="pfp"/>
-    </div>
   </header>
+
+  <!-- Floating NFT overlay -->
+  <div class="nft-overlay" id="nftOverlay" style="display:none">
+    <img id="nftPfp" src="" alt="NFT PFP"/>
+    <div class="status-bar-container"><div class="status-bar" id="statusBar"></div></div>
+  </div>
 
   <main class="chat-area" id="chatArea">
     <div id="systemCard" class="system-card">Status: <span id="status">Not connected</span></div>
     <div class="messages" id="messages"></div>
   </main>
+
+  <!-- Puppypet agent -->
+  <div class="agent-avatar" id="agentAvatar" style="display:none">
+    <img src="puppypetai.png" alt="Agent"/>
+  </div>
 
   <div class="composer">
     <div class="composer-inner">
@@ -98,14 +133,18 @@ const inputEl = document.getElementById('input');
 const statusEl = document.getElementById('status');
 const accessStateEl = document.getElementById('accessState');
 const requiredNftEl = document.getElementById('requiredNft');
-const pfpContainer = document.getElementById('pfp');
-const pfpImg = document.getElementById('pfpImg');
 const messagesContainer = document.getElementById('messages');
 const chatArea = document.getElementById('chatArea');
+
+const nftOverlay = document.getElementById('nftOverlay');
+const nftPfp = document.getElementById('nftPfp');
+const statusBar = document.getElementById('statusBar');
+const agentAvatar = document.getElementById('agentAvatar');
 
 requiredNftEl.textContent = CONFIG.NFT_CONTRACT + (CONFIG.NFT_TOKEN_ID ? " / #" + CONFIG.NFT_TOKEN_ID : " (any token)");
 
 let web3Provider=null, signer=null, userAddress=null;
+let statusProgress = 0;
 
 function short(addr){return addr?addr.slice(0,6)+'...'+addr.slice(-4):''}
 function escapeHtml(u=''){return String(u).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;')}
@@ -118,12 +157,22 @@ function pushMessage(who,text,isLoading=false){
   if(isLoading){
     const spinner = document.createElement('div'); spinner.className='spinner';
     body.appendChild(spinner);
+    agentAvatar.style.display='block';
+    agentAvatar.classList.add('agent-jitter');
   } else {
     body.innerHTML = escapeHtml(text);
+    agentAvatar.classList.remove('agent-jitter');
   }
   el.appendChild(meta); el.appendChild(body);
-  messagesContainer.appendChild(el); // append at bottom
-  setTimeout(scrollToBottom, 100);
+  messagesContainer.appendChild(el); 
+  setTimeout(scrollToBottom,100);
+
+  // Update status bar 10% per user prompt
+  if(who==='User'){
+    statusProgress = Math.min(100, statusProgress+10);
+    statusBar.style.width=statusProgress+'%';
+  }
+
   return el;
 }
 
@@ -154,7 +203,9 @@ async function checkNFT(){
   try{
     const contract = new ethers.Contract(CONFIG.NFT_CONTRACT, [
       'function ownerOf(uint256 tokenId) view returns (address)',
-      'function balanceOf(address owner) view returns (uint256)'
+      'function balanceOf(address owner) view returns (uint256)',
+      'function tokenOfOwnerByIndex(address owner,uint256 index) view returns (uint256)',
+      'function tokenURI(uint256 tokenId) view returns (string)'
     ], web3Provider);
 
     let owns=false;
@@ -169,10 +220,19 @@ async function checkNFT(){
     if(owns){
       accessStateEl.textContent='Unlocked';
       inputEl.disabled=false; sendBtn.disabled=false;
+      nftOverlay.style.display='flex';
+      // Optionally fetch tokenURI for image
+      try{
+        const tokenId = CONFIG.NFT_TOKEN_ID || await contract.tokenOfOwnerByIndex(userAddress,0);
+        const tokenUri = await contract.tokenURI(tokenId);
+        const url = tokenUri.startsWith('ipfs://')? tokenUri.replace('ipfs://','https://ipfs.io/ipfs/'): tokenUri;
+        nftPfp.src = url;
+      } catch(err){console.warn('NFT image failed',err);}
       pushMessage('System','Chat unlocked — hello! Ask anything.');
     } else {
       accessStateEl.textContent='Locked';
       inputEl.disabled=true; sendBtn.disabled=true;
+      nftOverlay.style.display='none';
       pushMessage('System','Access locked — wallet does not hold the required NFT.');
     }
   } catch(err){console.error(err);}
@@ -217,6 +277,4 @@ sendBtn.onclick = sendMessage;
 pushMessage('System','Welcome — click Connect Wallet. Chat will unlock only if your wallet holds the configured NFT.');
 </script>
 </body>
-  <footer>
-  <p>&copy; 2026 Digitalknuckles. All rights reserved.</p>
 </html>
