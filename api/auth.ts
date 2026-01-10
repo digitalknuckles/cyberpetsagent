@@ -1,32 +1,19 @@
-import type { NextApiRequest, NextApiResponse } from "next";
+// /api/auth.js
+import { randomBytes } from 'crypto';
 
-/**
- * Cookie-only session bootstrap
- * No wallet signing, no nonces, no crypto
- */
-export default function handler(
-  req: NextApiRequest,
-  res: NextApiResponse
-) {
-  if (req.method !== "POST") {
-    return res.status(405).json({ error: "Method Not Allowed" });
-  }
+export default function handler(req, res) {
+  if (req.method !== 'POST') return res.status(405).json({ error: 'Method Not Allowed' });
 
   try {
-    // Create a lightweight session token
-    const sessionId =
-      "sess_" + Math.random().toString(36).slice(2) + "_" + Date.now();
+    const { address } = req.body;
+    if (!address) return res.status(400).json({ error: 'Missing wallet address' });
 
-    res.setHeader(
-      "Set-Cookie",
-      `session=${sessionId}; Path=/; HttpOnly; SameSite=Lax; ${
-        process.env.NODE_ENV === "production" ? "Secure;" : ""
-      } Max-Age=${60 * 60 * 24}`
-    );
-
-    return res.status(200).json({ ok: true });
+    // Generate simple session ID
+    const sessionId = `sess_${randomBytes(12).toString('hex')}_${Date.now()}`;
+    res.setHeader('Set-Cookie', `sessionId=${sessionId}; HttpOnly; Path=/; Max-Age=${24*60*60}; SameSite=Strict`);
+    return res.status(200).json({ sessionId });
   } catch (err) {
-    console.error("auth error:", err);
-    return res.status(500).json({ error: "Internal Server Error" });
+    console.error('auth error', err);
+    return res.status(500).json({ error: 'Internal Server Error' });
   }
 }
