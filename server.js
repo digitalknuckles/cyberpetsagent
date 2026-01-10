@@ -1,115 +1,112 @@
-const express = require("express");
-const fetch = require("node-fetch");
-const cookieParser = require("cookie-parser");
+const express = require('express');
+const fetch = require('node-fetch');
+const cookieParser = require('cookie-parser');
+const path = require('path');
 
 const app = express();
-
 app.use(express.json());
 app.use(cookieParser());
 
-// ─────────────────────────────────────────────
-// ENV
-// ─────────────────────────────────────────────
+// Load env
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 const PORT = process.env.PORT || 3000;
 
-if (!OPENAI_API_KEY) {
-  console.warn("⚠️ OPENAI_API_KEY is not set");
-}
-
-// ─────────────────────────────────────────────
-// SESSION (COOKIE-ONLY)
-// ─────────────────────────────────────────────
-app.post("/api/session", (req, res) => {
-  const sessionId = `sess_${Math.random().toString(36).slice(2)}_${Date.now()}`;
-
-  res.cookie("session", sessionId, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    maxAge: 24 * 60 * 60 * 1000, // 24h
-  });
-
-  res.json({ ok: true });
+// Serve index.html at root
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-// ─────────────────────────────────────────────
-// STREAMING CHAT ENDPOINT
-// ─────────────────────────────────────────────
-app.post("/api/chat", async (req, res) => {
-  if (!req.cookies.session) {
-    return res.status(401).json({ error: "Unauthorized" });
+// --- /api/auth route (cookie-only, simplified) ---
+app.post('/api/auth', (req, res) => {
+  const { address } = req.body;
+  if (!address) return res.status(400).json({ error: 'Missing wallet address' });
+
+  // Generate simple session ID
+  const sessionId = `sess_${Math.random().toString(36).slice(2)}_${Date.now()}`;
+  res.cookie('sessionId', sessionId, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'strict',
+    maxAge: 24 * 60 * 60 * 1000,
+  });
+  res.json({ sessionId });
+});
+
+// --- Helper: stream OpenAI response ---
+async function streamOpenAIResponse(prompt, res) {
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+
+  const openaiResp = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${OPENAI_API_KEY}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: 'gpt-4o-mini',
+      messages: [{ role: 'user', content: prompt }],
+      stream: true,
+    }),
+  });
+
+  if (!openaiResp.ok) {
+    res.write(`data: Error contacting OpenAI: ${openaiResp.status}\n\n`);
+    res.end();
+    return;
   }
 
-  const { input } = req.body;
-  if (!input) {
-    return res.status(400).json({ error: "Missing input" });
-  }
+  const reader = openaiResp.body.getReader();
+  const decoder = new TextDecoder();
+  let done = false;
 
-  try {
-    const openaiResp = await fetch(
-      "https://api.openai.com/v1/chat/completions",
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${OPENAI_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "gpt-4o-mini",
-          messages: [{ role: "user", content: input }],
-          temperature: 0.7,
-          stream: true,
-        }),
-      }
-    );
-
-    if (!openaiResp.ok) {
-      const errText = await openaiResp.text();
-      console.error("OpenAI error:", errText);
-      return res.status(500).json({ error: "OpenAI request failed" });
-    }
-
-    // IMPORTANT: streaming for fetch(), NOT SSE
-    res.setHeader("Content-Type", "text/plain; charset=utf-8");
-    res.setHeader("Transfer-Encoding", "chunked");
-    res.setHeader("Cache-Control", "no-cache");
-
-    const reader = openaiResp.body.getReader();
-    const decoder = new TextDecoder();
-
-    while (true) {
-      const { value, done } = await reader.read();
-      if (done) break;
-
-      const chunk = decoder.decode(value, { stream: true });
-
-      // OpenAI streams "data: {...}" lines
-      const lines = chunk.split("\n");
+  while (!done) {
+    const { value, done: doneReading } = await reader.read();
+    done = doneReading;
+    if (value) {
+      const chunk = decoder.decode(value);
+      const lines = chunk.split('\n').filter(Boolean);
       for (const line of lines) {
-        if (!line.startsWith("data:")) continue;
-        if (line.includes("[DONE]")) continue;
-
-        try {
-          const json = JSON.parse(line.replace("data:", "").trim());
-          const token = json.choices?.[0]?.delta?.content;
-          if (token) res.write(token);
-        } catch {
-          // ignore malformed chunks
+        if (line.startsWith('data: [DONE]')) {
+          res.write('data: [DONE]\n\n');
+          res.end();
+          return;
+        }
+        if (line.startsWith('data: ')) {
+          const jsonStr = line.replace(/^data: /, '');
+          try {
+            const parsed = JSON.parse(jsonStr);
+            const content = parsed.choices[0].delta?.content;
+            if (content) res.write(`data: ${content}\n\n`);
+          } catch (e) {
+            console.warn('JSON parse error', e);
+          }
         }
       }
     }
+  }
+}
 
-    res.end();
-  } catch (err) {
-    console.error("Chat streaming error:", err);
-    res.status(500).end();
+// --- /api/chat route ---
+app.post('/api/chat', async (req, res) => {
+  const { input, sessionId } = req.body;
+
+  // Validate session cookie
+  if (!sessionId || sessionId !== req.cookies.sessionId) {
+    return res.status(401).json({ error: 'Unauthorized — invalid session' });
+  }
+  if (!input) return res.status(400).json({ error: 'Missing input' });
+
+  try {
+    await streamOpenAIResponse(input, res);
+  } catch (e) {
+    console.error('Streaming failed', e);
+    res.status(500).json({ error: 'Server error streaming AI response' });
   }
 });
 
-// ─────────────────────────────────────────────
-// START SERVER
-// ─────────────────────────────────────────────
-app.listen(PORT, () => {
-  console.log(`✅ Server running on port ${PORT}`);
-});
+// Serve static assets if any (optional)
+app.use(express.static(__dirname));
+
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
