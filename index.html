@@ -6,14 +6,25 @@
 <title>NFT-Gated AI Chat — Cyberpets</title>
 <style>
 :root{
-  --bg:#0b1020; --card:#0f1724; --muted:#94a3b8; --accent:#7c3aed;
+  --bg:#0b1020;
+  --card:#0f1724;
+  --muted:#94a3b8;
+  --accent:#7c3aed;
   --glass: rgba(255,255,255,0.03);
   --bubble-user: linear-gradient(135deg,#7c3aed,#06b6d4);
   --bubble-ai: #111827;
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
 }
 
-html,body{height:100%;margin:0;background:var(--bg);color:#e6eef8;overflow:hidden;}
+/* ---- GLOBAL BACKGROUND ---- */
+html,body{
+  height:100%;
+  margin:0;
+  background:var(--bg);
+  color:#e6eef8;
+  overflow:hidden;
+}
+
 body::before{
   content:'';
   position:fixed;
@@ -23,6 +34,8 @@ body::before{
   z-index:0;
   pointer-events:none;
 }
+
+/* ---- APP CONTAINER ---- */
 .app{
   max-width:720px;
   margin:0 auto;
@@ -32,7 +45,9 @@ body::before{
   position:relative;
   z-index:1;
 }
-  .app::before{
+
+/* vignette overlay */
+.app::before{
   content:'';
   position:absolute;
   inset:0;
@@ -44,73 +59,175 @@ body::before{
   pointer-events:none;
   z-index:0;
 }
-/*.app{max-width:720px;margin:0 auto;height:100vh;display:flex;flex-direction:column;position:relative;}*/
-header{position:relative;padding:14px 16px;display:flex;align-items:center;gap:12px;}
-.brand{font-weight:700;font-size:18px;letter-spacing:0.4px;}
+
+/* ensure children render above vignette */
+.app > *{
+  position:relative;
+  z-index:1;
+}
+
+/* ---- HEADER ---- */
+header{
+  padding:14px 16px;
+  display:flex;
+  align-items:center;
+  gap:12px;
+}
+.brand{font-weight:700;font-size:18px;}
 .subtitle{font-size:12px;color:var(--muted);}
 
-/* Floating PFP overlay */
+/* ---- FLOATING NFT PFP ---- */
 .pfp-overlay{
-  position:fixed; top:12px; right:12px; width:60px; height:60px;
-  border-radius:50%; overflow:hidden; border:2px solid rgba(255,255,255,0.1);
-  background:var(--glass); display:flex; align-items:center; justify-content:center; z-index:10;
+  position:fixed;
+  top:12px;
+  right:12px;
+  width:60px;
+  height:60px;
+  border-radius:50%;
+  overflow:hidden;
+  border:2px solid rgba(255,255,255,0.15);
+  background:var(--glass);
+  z-index:10;
 }
-.pfp-overlay img{width:100%; height:100%; object-fit:cover;}
+.pfp-overlay img{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+}
 
-/* NFT status bar */
+/* ---- NFT STATUS BAR ---- */
 .nft-status{
-  position:fixed; top:78px; right:20px; width:60px; height:6px; background:rgba(255,255,255,0.05); border-radius:3px; overflow:hidden; z-index:10;
+  position:fixed;
+  top:78px;
+  right:20px;
+  width:60px;
+  height:6px;
+  background:rgba(255,255,255,0.12);
+  border-radius:3px;
+  overflow:hidden;
+  z-index:10;
 }
-.nft-status-fill{height:100%; width:0%; background:linear-gradient(135deg,#0fc9b0,#7c3aed); transition:width 0.3s ease;}
+.nft-status-fill{
+  height:100%;
+  width:0%;
+  background:linear-gradient(90deg,#16f5a6,#f43f5e);
+  transition:width 0.3s ease;
+}
 
-/* Chat area */
-/*main.chat-area{flex:1; display:flex; flex-direction:column; padding:12px 16px 140px; gap:12px; overflow-y:auto;}*/
-  main.chat-area{
-  background: transparent;
+/* ---- CHAT AREA ---- */
+main.chat-area{
+  flex:1;
+  overflow-y:auto;
+  padding:12px 16px 180px;
+  background:transparent;
 }
-.messages{display:flex; flex-direction:column; gap:10px; padding-bottom:12px;}
-.msg{max-width:86%; padding:12px; border-radius:14px; line-height:1.35; font-size:15px}
-/*.msg.ai{background:var(--bubble-ai); align-self:flex-start; border-top-left-radius:6px;}
-.msg.user{background:var(--bubble-user); align-self:flex-end;color:white; border-top-right-radius:6px;}
-*/
-  .msg.ai{
-  background: rgba(17,24,39,0.75);
-  backdrop-filter: blur(6px);
+
+.messages{
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+}
+
+.msg{
+  max-width:86%;
+  padding:12px;
+  border-radius:14px;
+  font-size:15px;
+  line-height:1.35;
+}
+
+.msg.ai{
+  background:rgba(17,24,39,0.75);
+  backdrop-filter:blur(6px);
+  align-self:flex-start;
 }
 
 .msg.user{
-  background: linear-gradient(
+  background:linear-gradient(
     135deg,
     rgba(124,58,237,0.85),
     rgba(6,182,212,0.85)
   );
+  color:white;
+  align-self:flex-end;
 }
-.meta{font-size:12px;color:var(--muted);margin-bottom:6px;}
 
-/* Composer */
-/*.composer{position:fixed; left:0; right:0; bottom:0; background:linear-gradient(180deg, rgba(11,16,32,0.9), rgba(7,10,18,0.95)); backdrop-filter:blur(6px); padding:10px; display:flex; align-items:center; gap:8px;}*/
-  .composer{
-  background: linear-gradient(
+.meta{
+  font-size:12px;
+  color:var(--muted);
+  margin-bottom:6px;
+}
+
+/* ---- COMPOSER ---- */
+.composer{
+  position:fixed;
+  left:0;
+  right:0;
+  bottom:0;
+  padding:14px 12px;
+  display:flex;
+  align-items:center;
+  gap:8px;
+  background:linear-gradient(
     180deg,
-    rgba(11,16,32,0.6),
-    rgba(7,10,18,0.75)
+    rgba(11,16,32,0.55),
+    rgba(7,10,18,0.8)
   );
-  backdrop-filter: blur(10px);
+  backdrop-filter:blur(12px);
+  z-index:5;
 }
-.input{flex:1;background:transparent;border:1px solid rgba(255,255,255,0.06);padding:12px;border-radius:14px;color:inherit;}
-.send{background:linear-gradient(135deg,#06b6d4,#7c3aed);border:none;padding:10px 12px;border-radius:12px;color:white;font-weight:700; cursor:pointer;}
-.avatar{
-  position:absolute; left:8px; bottom:72px; width:60px; height:60px;
-  background:url('https://ipfs.io/ipfs/bafybeid54iqakrphe2yc323kgpnn7r4wubeckxt2fdy4dj3hrhpc2iwxqa') center/cover no-repeat;
-  border-radius:50%; animation: bounce 1s infinite alternate;
-}
-@keyframes bounce{0%{transform:translateY(0)}100%{transform:translateY(-8px)}}
 
-/* Loading spinner */
-.loading-spinner{
-  width:24px; height:24px; border:3px solid rgba(255,255,255,0.1); border-top-color:var(--accent); border-radius:50%; animation:spin 1s linear infinite; display:inline-block;
+.input{
+  flex:1;
+  background:transparent;
+  border:1px solid rgba(255,255,255,0.12);
+  padding:12px;
+  border-radius:14px;
+  color:inherit;
 }
-@keyframes spin{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}
+
+.send{
+  background:linear-gradient(135deg,#06b6d4,#7c3aed);
+  border:none;
+  padding:10px 14px;
+  border-radius:12px;
+  color:white;
+  font-weight:700;
+  cursor:pointer;
+}
+
+/* ---- PUPPYPET AI AVATAR (200x200) ---- */
+.avatar{
+  position:absolute;
+  left:10px;
+  bottom:120px;
+  width:200px;
+  height:200px;
+  background:url('https://ipfs.io/ipfs/bafybeid54iqakrphe2yc323kgpnn7r4wubeckxt2fdy4dj3hrhpc2iwxqa') center/contain no-repeat;
+  animation:bounce 1s ease-in-out infinite alternate;
+  pointer-events:none;
+  z-index:6;
+}
+
+@keyframes bounce{
+  from{transform:translateY(0);}
+  to{transform:translateY(-10px);}
+}
+
+/* ---- LOADING SPINNER ---- */
+.loading-spinner{
+  width:24px;
+  height:24px;
+  border:3px solid rgba(255,255,255,0.15);
+  border-top-color:var(--accent);
+  border-radius:50%;
+  animation:spin 1s linear infinite;
+  display:inline-block;
+}
+
+@keyframes spin{
+  to{transform:rotate(360deg);}
+}
 </style>
 </head>
 <body>
