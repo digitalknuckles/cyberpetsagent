@@ -3,8 +3,9 @@
   "version": "1.0.0",
   "description": "NFT-gated AI Chat MVP — Cyberpets",
   "main": "server.js",
+  "type": "module",
   "scripts": {
-    "dev": "node server.js",
+    "dev": "nodemon server.js",
     "start": "node server.js"
   },
   "keywords": [
@@ -18,7 +19,21 @@
   "license": "MIT",
   "dependencies": {
     "cookie-parser": "^1.4.7",
-    "express": "^4.22.1",
-    "node-fetch": "^2.7.0"
-  }
+    "dotenv": "^17.2.3",
+    "express": "^4.22.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.11"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/digitalknuckles/cyberpetsagent.git"
+  },
+  "bugs": {
+    "url": "https://github.com/digitalknuckles/cyberpetsagent/issues"
+  },
+  "homepage": "https://github.com/digitalknuckles/cyberpetsagent#readme"
 }

@@ -1,22 +1,31 @@
-// /api/chat.js
-import fetch from 'node-fetch';
+// /api/chat.ts
+import type { NextApiRequest, NextApiResponse } from 'next';
 
-export default async function handler(req, res) {
-  if (req.method !== 'POST') return res.status(405).json({ error: 'Method Not Allowed' });
+type Data = { error?: string };
+
+export default async function handler(
+  req: NextApiRequest,
+  res: NextApiResponse<Data | any>
+) {
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method Not Allowed' });
+  }
 
   try {
     const { input } = req.body;
 
-    // Simple cookie auth check
+    // ✅ Simple cookie auth check
     const { sessionId } = req.cookies;
     if (!sessionId) return res.status(401).json({ error: 'Unauthorized — missing session' });
 
     if (!input) return res.status(400).json({ error: 'Missing input' });
 
+    // Streaming response headers
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('Connection', 'keep-alive');
 
+    // Use built-in fetch (Node 18+ / Vercel runtime)
     const openaiResp = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -36,7 +45,13 @@ export default async function handler(req, res) {
       return;
     }
 
-    const reader = openaiResp.body.getReader();
+    const reader = openaiResp.body?.getReader();
+    if (!reader) {
+      res.write(`data: No readable body from OpenAI\n\n`);
+      res.end();
+      return;
+    }
+
     const decoder = new TextDecoder();
     let done = false;
 
@@ -66,7 +81,7 @@ export default async function handler(req, res) {
       }
     }
   } catch (err) {
-    console.error('chat error', err);
+    console.error('chat.ts error', err);
     res.status(500).json({ error: 'Internal Server Error' });
   }
 }
