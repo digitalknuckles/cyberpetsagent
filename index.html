@@ -228,6 +228,30 @@ main.chat-area{
 @keyframes spin{
   to{transform:rotate(360deg);}
 }
+  /* Wallet button blink */
+.send.blink {
+  animation: blink 1.2s infinite;
+}
+@keyframes blink {
+  0%,100% { box-shadow: 0 0 0 rgba(124,58,237,0); }
+  50% { box-shadow: 0 0 14px rgba(124,58,237,0.8); }
+}
+
+/* Avatar AI typing state */
+.avatar.thinking {
+  animation: bounce 0.4s ease-in-out infinite alternate;
+  filter: drop-shadow(0 0 12px rgba(124,58,237,0.7));
+}
+
+/* NFT status pulse at 100% */
+.nft-status-fill.full {
+  animation: pulse 1.2s infinite;
+}
+@keyframes pulse {
+  0% { filter: brightness(1); }
+  50% { filter: brightness(1.6); }
+  100% { filter: brightness(1); }
+}
 </style>
 </head>
 <body>
@@ -269,115 +293,161 @@ const connectBtn = document.getElementById('connectBtn');
 const sendBtn = document.getElementById('send');
 const inputEl = document.getElementById('input');
 const messagesContainer = document.getElementById('messages');
-const pfpOverlay = document.getElementById('pfpOverlay');
-const pfpImg = document.getElementById('pfpImg');
 const nftStatusFill = document.getElementById('nftStatusFill');
+const avatar = document.querySelector('.avatar');
 
 let web3Provider=null, signer=null, userAddress=null;
 let promptsCount=0;
+let avatarBoundMsg=null;
 
-function short(addr){return addr?addr.slice(0,6)+'...'+addr.slice(-4):''}
-function escapeHtml(u=''){return String(u).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('\n','<br/>');}
-function scrollToBottom(){messagesContainer.scrollTop=messagesContainer.scrollHeight;}
-function pushMessage(who,text){
-  const el=document.createElement('div');
-  el.className='msg '+(who==='User'?'user':'ai');
-  const meta=document.createElement('div');meta.className='meta';meta.textContent=who==='User'?'You':'AI Assistant';
-  const body=document.createElement('div');body.innerHTML=text; el.appendChild(meta); el.appendChild(body);
+// ---- helpers ----
+function escapeHtml(u=''){
+  return String(u)
+    .replaceAll('&','&amp;')
+    .replaceAll('<','&lt;')
+    .replaceAll('>','&gt;')
+    .replaceAll('\n','<br/>');
+}
+
+function scrollToBottom(){
+  messagesContainer.scrollTop = messagesContainer.scrollHeight;
+}
+
+// ---- avatar positioning ----
+function bindAvatarToMessage(msgEl){
+  if(!msgEl) return;
+  avatarBoundMsg = msgEl;
+
+  const rect = msgEl.getBoundingClientRect();
+  const containerRect = document.querySelector('.app').getBoundingClientRect();
+
+  avatar.style.top = `${rect.top - containerRect.top - 10}px`;
+  avatar.style.left = `${rect.left - containerRect.left - 60}px`;
+}
+
+function updateAvatarPosition(){
+  if(!avatarBoundMsg) return;
+  bindAvatarToMessage(avatarBoundMsg);
+}
+
+window.addEventListener('scroll', updateAvatarPosition);
+window.addEventListener('resize', updateAvatarPosition);
+
+// ---- messaging ----
+function pushMessage(who, text){
+  const el = document.createElement('div');
+  el.className = 'msg ' + (who === 'User' ? 'user' : 'ai');
+
+  const meta = document.createElement('div');
+  meta.className = 'meta';
+  meta.textContent = who === 'User' ? 'You' : 'AI Assistant';
+
+  const body = document.createElement('div');
+  body.innerHTML = text;
+
+  el.appendChild(meta);
+  el.appendChild(body);
   messagesContainer.appendChild(el);
+
   scrollToBottom();
+
+  if(who === 'AI'){
+    bindAvatarToMessage(el);
+  }
+
   return el;
 }
 
-function updateNFTOverlay(imgUrl){ if(imgUrl) pfpImg.src = imgUrl; }
-function incrementNFTStatus(){ promptsCount++; nftStatusFill.style.width = Math.min(promptsCount*10,100)+'%'; }
+// ---- NFT status ----
+function incrementNFTStatus(){
+  promptsCount++;
+  const pct = Math.min(promptsCount * 10, 100);
+  nftStatusFill.style.width = pct + '%';
+  if(pct === 100){
+    nftStatusFill.classList.add('full');
+  }
+}
 
-// --- Wallet connect + NFT check ---
+// ---- wallet ----
+connectBtn.classList.add('blink');
+
 async function connectWallet(){
   if(!window.ethereum) return alert('No Ethereum wallet detected');
-  try{
-    await window.ethereum.request({ method:'eth_requestAccounts' });
-    web3Provider = new ethers.providers.Web3Provider(window.ethereum);
-    signer = web3Provider.getSigner();
-    userAddress = (await signer.getAddress()).toLowerCase();
-    connectBtn.textContent = `Connected: ${short(userAddress)}`;
 
-    // session
-    const authResp = await fetch(`${CONFIG.API_BASE}/api/auth`,{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ address:userAddress }),
-      credentials:'include'
-    });
-    const authData = await authResp.json();
-    console.log('Session:', authData);
+  await window.ethereum.request({ method:'eth_requestAccounts' });
+  web3Provider = new ethers.providers.Web3Provider(window.ethereum);
+  signer = web3Provider.getSigner();
+  userAddress = await signer.getAddress();
 
-    // NFT check
-    await checkNFT();
-  } catch(err){ console.error(err); alert('Wallet connection failed'); }
+  connectBtn.textContent = 'Connected';
+  connectBtn.classList.remove('blink');
+
+  await checkNFT();
 }
 
 async function checkNFT(){
-  try{
-    const contract = new ethers.Contract(CONFIG.NFT_CONTRACT, [
-      'function ownerOf(uint256 tokenId) view returns (address)',
-      'function balanceOf(address owner) view returns (uint256)',
-      'function tokenOfOwnerByIndex(address owner,uint256 index) view returns (uint256)',
-      'function tokenURI(uint256 tokenId) view returns (string)'
-    ], web3Provider);
+  const contract = new ethers.Contract(CONFIG.NFT_CONTRACT, [
+    'function balanceOf(address owner) view returns (uint256)'
+  ], web3Provider);
 
-    let owns=false;
-    if(CONFIG.NFT_TOKEN_ID){
-      const owner=(await contract.ownerOf(CONFIG.NFT_TOKEN_ID)).toLowerCase();
-      owns = owner === userAddress;
-    } else {
-      const balance = await contract.balanceOf(userAddress);
-      owns = balance.toNumber() > 0;
-    }
-
-    if(owns){
-      inputEl.disabled=false; sendBtn.disabled=false;
-      pushMessage('System','Chat unlocked — hello! Ask anything.');
-      updateNFTOverlay('https://ipfs.io/ipfs/bafybeid54iqakrphe2yc323kgpnn7r4wubeckxt2fdy4dj3hrhpc2iwxqa');
-    } else {
-      inputEl.disabled=true; sendBtn.disabled=true;
-      pushMessage('System','Access locked — wallet does not hold the required NFT.');
-    }
-  } catch(err){ console.error(err); }
+  const balance = await contract.balanceOf(userAddress);
+  if(balance.toNumber() > 0){
+    inputEl.disabled = false;
+    sendBtn.disabled = false;
+    pushMessage('AI','Chat unlocked — hello! Ask anything.');
+  } else {
+    pushMessage('AI','Access locked — wallet does not hold the required NFT.');
+  }
 }
 
-// --- Send chat ---
+// ---- chat ----
 async function sendMessage(){
-  const text=inputEl.value.trim(); if(!text) return;
+  const text = inputEl.value.trim();
+  if(!text) return;
+
   pushMessage('User', escapeHtml(text));
-  inputEl.value=''; sendBtn.disabled=true;
-  const placeholder=pushMessage('AI','<span class="loading-spinner"></span>');
+  inputEl.value = '';
+  sendBtn.disabled = true;
+
+  avatar.classList.add('thinking');
+
+  const placeholder = pushMessage('AI','<span class="loading-spinner"></span>');
 
   try{
-    const resp=await fetch(`${CONFIG.API_BASE}/api/chat`,{
+    const resp = await fetch(`${CONFIG.API_BASE}/api/chat`,{
       method:'POST',
       headers:{'Content-Type':'application/json'},
       body: JSON.stringify({ input:text }),
       credentials:'include'
     });
-    const data=await resp.json();
+
+    const data = await resp.json();
     placeholder.remove();
-    pushMessage('AI', escapeHtml(data.text || 'No response'));
+    const aiMsg = pushMessage('AI', escapeHtml(data.text || 'No response'));
+    bindAvatarToMessage(aiMsg);
     incrementNFTStatus();
-  } catch(err){
+  }catch(e){
     placeholder.remove();
     pushMessage('AI','Error contacting AI backend.');
-    console.error(err);
-  } finally{ sendBtn.disabled=false; }
+  }finally{
+    avatar.classList.remove('thinking');
+    sendBtn.disabled = false;
+  }
 }
 
-// --- Event bindings ---
-connectBtn.onclick=connectWallet;
-sendBtn.onclick=sendMessage;
-inputEl.addEventListener('keydown', e => { if(e.key==='Enter') sendMessage(); });
+// ---- bindings ----
+connectBtn.onclick = connectWallet;
+sendBtn.onclick = sendMessage;
+inputEl.addEventListener('keydown', e => {
+  if(e.key === 'Enter') sendMessage();
+});
 
-// Initial system message
-pushMessage('System','Welcome — click Connect Wallet. Chat will unlock only if your wallet holds the configured NFT.');
+// ---- initial welcome ----
+const welcomeMsg = pushMessage(
+  'AI',
+  'Welcome! Please connect your wallet to begin.'
+);
+bindAvatarToMessage(welcomeMsg);
 </script>
 </body>
 </html>
