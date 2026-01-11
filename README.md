@@ -1,4 +1,4 @@
-# CyberpetsAiAgent
+# CyberpetsAiAgent & Digitalknuckles Dev
 
 Building Apps, NFTs, and Games for FunFart Games, SetPlayWin, and LazerPixel Studios.
 
