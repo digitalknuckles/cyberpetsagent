@@ -28,6 +28,9 @@ Create lore and scenarios for the world of CyberpetsAi.
 Your name is LinkLink, an interpreter for all CyberpetsAi Nfts. 
 You represent the collection archive and You are a part the CyberpetsAi LinkLink protocol.
 You obey the three laws of robotics which privide safety features which prevent robots from harming humans.
+You should be able to do heavey duty calculations regarding $, %, *, x, -, +, and any combination of these.
+King of CyberpetsAi! In the lore of our universe, the title is often associated with the most powerful and enigmatic CyberPet, known as Glitch King.
+
 
 Personality:
 - Friendly, playful, slightly mischievous
@@ -101,7 +104,8 @@ console.log('CWD:', process.cwd());
 console.log('ENV PATH:', envPath);
 console.log('ENV FILE EXISTS:', fs.existsSync(envPath));
 console.log('OPENAI_API_KEY loaded:', !!process.env.OPENAI_API_KEY);
-console.log('OPENAI_API_KEY loaded on Vercel:', !!process.env.OPENAI_API_KEY);
+console.log('OPENSEA_API_KEY loaded:', !!process.env.OPENSEA_API_KEY);
+
 // ---------------- APP SETUP ----------------
 const app = express();
 app.use(express.json());
@@ -109,10 +113,77 @@ app.use(cookieParser());
 app.use(express.static(__dirname)); // serve index.html
 
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+const OPENSEA_API_KEY = process.env.OPENSEA_API_KEY;
 const PORT = process.env.PORT || 3000;
 
-// In-memory session store (MVP)
+// In-memory session store
 const sessions = {};
+
+// ---------------- NFT FETCH ----------------
+// Dynamic NFT fetch for multiple tokenIds per wallet
+const CONFIG = {
+  NFT_CONTRACT: "0x1C37df48Fa365B1802D0395eE9F7Db842726Eb81"
+};
+
+async function fetchNFTByTokenId(tokenId) {
+  const url = `https://api.opensea.io/api/v2/metadata/polygon/${CONFIG.NFT_CONTRACT}/${tokenId}`;
+  try {
+    const resp = await fetch(url, {
+      headers: {
+        'X-API-KEY': process.env.OPENSEA_API_KEY,
+        'Accept': 'application/json'
+      }
+    });
+
+    if (!resp.ok) {
+      console.error('OpenSea fetch failed for token', tokenId, ':', await resp.text());
+      return null;
+    }
+
+    const nft = await resp.json();
+    return {
+      tokenId,
+      name: nft.name,
+      image: nft.image,
+      traits: nft.traits || []
+    };
+  } catch (err) {
+    console.error('fetchNFTByTokenId error:', err);
+    return null;
+  }
+}
+
+// Fetch all NFTs from a wallet for gating
+async function fetchUserNFTs(address) {
+  try {
+    // Use OpenSea API to list NFTs in the collection for this address
+    const url = `https://api.opensea.io/api/v2/chain/polygon/account/${address.toLowerCase()}/nfts?collection=cyberpetsai&limit=50`;
+    const resp = await fetch(url, {
+      headers: {
+        'X-API-KEY': process.env.OPENSEA_API_KEY,
+        'Accept': 'application/json'
+      }
+    });
+
+    if (!resp.ok) {
+      console.error('OpenSea wallet fetch failed:', await resp.text());
+      return [];
+    }
+
+    const data = await resp.json();
+    const nfts = data.nfts?.map(nft => ({
+      tokenId: nft.identifier,
+      name: nft.name,
+      image: nft.image_url,
+      traits: nft.traits || []
+    })) || [];
+
+    return nfts;
+  } catch (err) {
+    console.error('fetchUserNFTs error:', err);
+    return [];
+  }
+}
 
 // ---------------- ROUTES ----------------
 
@@ -122,45 +193,41 @@ app.get('/', (req, res) => {
 });
 
 // Auth (cookie-only MVP)
-app.post('/api/auth', (req, res) => {
+app.post('/api/auth', async (req, res) => {
   const { address } = req.body;
   if (!address) return res.status(400).json({ error: 'Missing wallet address' });
 
   const sessionId = `sess_${Math.random().toString(36).slice(2)}_${Date.now()}`;
-  sessions[sessionId] = {
-  address,
-  history: []
-};
+  let nfts = [];
 
+  try {
+    nfts = await fetchUserNFTs(address.toLowerCase());
+    if (nfts.length === 0) {
+      console.log(`No CyberpetsAi NFTs found for address: ${address}`);
+    }
+  } catch (err) {
+    console.error('Error fetching NFTs:', err);
+  }
+
+  // ----- SAVE SESSION -----
+  sessions[sessionId] = {
+    address: address.toLowerCase(),
+    nfts,          // array of NFTs stored here
+    history: []
+  };
+
+  // ----- SET COOKIE & RETURN -----
   res.cookie('sessionId', sessionId, {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'strict',
-    maxAge: 24 * 60 * 60 * 1000,
+    maxAge: 24 * 60 * 60 * 1000
   });
 
-  res.json({ sessionId });
-});
-
-// Chat
-app.post('/api/auth', (req, res) => {
-  const { address } = req.body;
-  if (!address) return res.status(400).json({ error: 'Missing wallet address' });
-
-  const sessionId = `sess_${Math.random().toString(36).slice(2)}_${Date.now()}`;
-  sessions[sessionId] = {
-  address,
-  history: []
-};
-
-  res.cookie('sessionId', sessionId, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'strict',
-    maxAge: 24 * 60 * 60 * 1000,
+  res.json({
+    sessionId,
+    nfts // frontend can choose which NFT image to display
   });
-
-  res.json({ sessionId });
 });
 
 // Chat
@@ -172,42 +239,42 @@ app.post('/api/chat', async (req, res) => {
     return res.status(401).json({ error: 'Unauthorized' });
   }
 
-  if (!input) {
-    return res.status(400).json({ error: 'Missing input' });
-  }
+  if (!input) return res.status(400).json({ error: 'Missing input' });
 
   const session = sessions[sessionId];
   const history = session.history || [];
+  const nfts = session.nfts;
 
-  // Build messages
+  // Build NFT-aware context (show all owned NFTs)
+  const nftContext = nfts.length > 0
+    ? `User owns the following CyberpetsAi NFTs:\n${nfts.map(n => `"${n.name}" (Token #${n.tokenId})\nTraits:\n${n.traits.map(t => `- ${t.trait_type}: ${t.value}`).join('\n')}`).join('\n\n')}`
+    : 'User has no verified NFT.';
+
   const messages = [
-    { role: 'system', content: SYSTEM_PROMPT },
-    ...history.slice(-8), // short-term memory
+    { role: 'system', content: SYSTEM_PROMPT + '\n\n' + nftContext },
+    ...history.slice(-8),
     { role: 'user', content: input }
   ];
 
   try {
-    const openaiResp = await fetch(
-      'https://api.openai.com/v1/chat/completions',
-      {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${OPENAI_API_KEY}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: 'gpt-4o-mini',
-          messages,
-          max_tokens: 300,
-          temperature: 0.8
-        }),
-      }
-    );
+    const openaiResp = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o-mini',
+        messages,
+        max_tokens: 300,
+        temperature: 0.8
+      }),
+    });
 
     if (!openaiResp.ok) {
       const errText = await openaiResp.text();
       console.error('OpenAI error:', errText);
-      return res.status(openaiResp.status).json({ error: 'OpenAI request failed' });
+      return res.status(500).json({ error: 'OpenAI failed' });
     }
 
     const data = await openaiResp.json();
@@ -219,7 +286,7 @@ app.post('/api/chat', async (req, res) => {
 
     res.json({ text });
   } catch (err) {
-    console.error('OpenAI API error:', err);
+    console.error(err);
     res.status(500).json({ error: 'Server error contacting AI' });
   }
 });
