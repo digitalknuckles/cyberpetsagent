@@ -67,10 +67,10 @@ header{
 
 .pfp-overlay{
   position:fixed;
-  top:12px;
-  right:12px;
-  width:60px;
-  height:60px;
+  top:20px;
+  right:20px;
+  width:100px;
+  height:100px;
   border-radius:50%;
   overflow:hidden;
   border:2px solid rgba(255,255,255,0.15);
@@ -81,10 +81,10 @@ header{
 
 .nft-status{
   position:fixed;
-  top:78px;
-  right:20px;
-  width:60px;
-  height:6px;
+  top:130px;
+  right:30px;
+  width:80px;
+  height:15px;
   background:rgba(255,255,255,0.12);
   border-radius:3px;
   overflow:hidden;
@@ -99,31 +99,37 @@ header{
 .nft-status-fill.pulse{ animation:pulse 1s infinite; }
 @keyframes pulse{ 0%{filter:brightness(1)} 50%{filter:brightness(1.6)} 100%{filter:brightness(1)} }
 
-/* NFT Selector */
+/* NFT Carousel */
 .nft-selector{
   position:fixed;
-  top:90px;
-  right:12px;
+  top:150px;
+  right:20px;
   display:flex;
-  flex-direction:row;
-  gap:6px;
-  overflow-x:auto;
-  max-width:calc(100% - 24px);
+  flex-direction:column;   /* ⬅️ vertical */
+  gap:10px;
+  max-height:calc(100vh - 140px);
+  overflow-y:auto;         /* ⬅️ vertical scroll */
+  padding-right:4px;
   z-index:21;
-  padding:4px 0;
+}
+.nft-selector::-webkit-scrollbar{ height:6px; }
+.nft-selector::-webkit-scrollbar-thumb{
+  background:rgba(255,255,255,.25);
+  border-radius:4px;
 }
 .nft-selector img{
-  width:48px;
-  height:48px;
-  border-radius:12px;
+  width:56px;
+  height:56px;
+  border-radius:14px;
   object-fit:cover;
-  border:2px solid rgba(255,255,255,0.1);
+  border:2px solid rgba(255,255,255,0.15);
   cursor:pointer;
   transition:all 0.2s ease;
 }
 .nft-selector img.selected{
   border-color:var(--accent);
-  transform:scale(1.05);
+  box-shadow:0 0 0 2px rgba(124,58,237,.35);
+  transform:scale(1.08);
 }
 
 /* CHAT */
@@ -132,45 +138,25 @@ main.chat-area{
   overflow-y:auto;
   padding:16px;
   padding-bottom:240px;
-  scrollbar-width: thin;
-}
-main.chat-area::-webkit-scrollbar{ width:8px; }
-main.chat-area::-webkit-scrollbar-thumb{
-  background:rgba(255,255,255,.2);
-  border-radius:4px;
 }
 
-.messages{
-  display:flex;
-  flex-direction:column;
-  gap:10px;
-}
+.messages{ display:flex; flex-direction:column; gap:10px; }
 
 .msg{
   max-width:86%;
   padding:12px;
   border-radius:14px;
   font-size:15px;
-  line-height:1.35;
-  position:relative;
-  z-index:3;
 }
 
-.msg.ai{
-  background:rgba(17,24,39,0.75);
-  align-self:flex-start;
-}
+.msg.ai{ background:rgba(17,24,39,0.75); }
 .msg.user{
   background:linear-gradient(135deg,#7c3aed,#06b6d4);
   align-self:flex-end;
   color:white;
 }
 
-.meta{
-  font-size:12px;
-  color:var(--muted);
-  margin-bottom:6px;
-}
+.meta{ font-size:12px; color:var(--muted); margin-bottom:6px; }
 
 /* COMPOSER */
 .composer{
@@ -178,12 +164,11 @@ main.chat-area::-webkit-scrollbar-thumb{
   bottom:0;
   left:0;
   right:0;
-  padding:14px 12px;
+  padding:14px;
   display:flex;
   gap:8px;
   background:linear-gradient(180deg,rgba(11,16,32,.6),rgba(7,10,18,.85));
   backdrop-filter:blur(12px);
-  z-index:10;
 }
 
 .input{
@@ -195,7 +180,6 @@ main.chat-area::-webkit-scrollbar-thumb{
   color:inherit;
 }
 
-/* AVATAR */
 .avatar{
   position:absolute;
   width:200px;
@@ -206,18 +190,11 @@ main.chat-area::-webkit-scrollbar-thumb{
   z-index:1;
 }
 .avatar.typing{ animation:bounce .3s infinite alternate; }
-
-@keyframes bounce{
-  from{transform:translateY(0)}
-  to{transform:translateY(-10px)}
-}
+@keyframes bounce{ from{transform:translateY(0)} to{transform:translateY(-10px)} }
 
 .loading-spinner{
-  width:24px;
-  height:24px;
-  border:3px solid rgba(255,255,255,.15);
-  border-top-color:var(--accent);
-  border-radius:50%;
+  width:24px;height:24px;border:3px solid rgba(255,255,255,.15);
+  border-top-color:var(--accent);border-radius:50%;
   animation:spin 1s linear infinite;
 }
 @keyframes spin{to{transform:rotate(360deg)}}
@@ -226,7 +203,6 @@ main.chat-area::-webkit-scrollbar-thumb{
 
 <body>
 <div class="app">
-
 <header>
   <div>
     <div class="brand">Cyberpets AI</div>
@@ -235,11 +211,8 @@ main.chat-area::-webkit-scrollbar-thumb{
   <button id="connectBtn" class="send blink" style="margin-left:auto">Connect Wallet</button>
 </header>
 
-<!-- NFT PFP overlay -->
-<div class="pfp-overlay"><img id="pfpImg" /></div>
-<div class="nft-status"><div class="nft-status-fill" id="nftStatusFill"></div></div>
-
-<!-- NFT selector bar -->
+<div class="pfp-overlay"><img id="pfpImg"></div>
+<div class="nft-status"><div id="nftStatusFill" class="nft-status-fill"></div></div>
 <div class="nft-selector" id="nftSelector"></div>
 
 <main class="chat-area">
@@ -259,28 +232,34 @@ main.chat-area::-webkit-scrollbar-thumb{
 <script>
 const CONFIG = {
   NFT_CONTRACT: "0x1C37df48Fa365B1802D0395eE9F7Db842726Eb81",
-  NFT_TOKEN_ID: null,  // dynamic, updated on selection
-  API_BASE: ""          // leave blank for same-origin
+  NFT_TOKEN_ID: null,
+  API_BASE: "",
+  ENABLE_SESSION_RESTORE: false // ⬅️ disable missing endpoint
 };
 
 const connectBtn = document.getElementById('connectBtn');
 const sendBtn = document.getElementById('send');
 const inputEl = document.getElementById('input');
 const messages = document.getElementById('messages');
-const avatar = document.getElementById('avatar');
 const nftFill = document.getElementById('nftStatusFill');
 const pfpImg = document.getElementById('pfpImg');
-const nftSelectorEl = document.getElementById('nftSelector'); // new NFT selection container
+const nftSelectorEl = document.getElementById('nftSelector');
 
-let web3Provider = null, signer = null, userAddress = null;
+let avatar = document.getElementById('avatar');
+let web3Provider = null;
+let signer = null;
+let userAddress = null;
 let prompts = 0;
-window.activeNFT = null; // current active NFT
 
-function scrollBottom() {
+let ownedNFTs = [];
+let activeNFT = null;
+
+/* ---------------- UTIL ---------------- */
+function scrollBottom(){
   messages.parentElement.scrollTop = messages.parentElement.scrollHeight;
 }
 
-function escapeHtml(u='') {
+function escapeHtml(u=''){
   return String(u)
     .replaceAll('&','&amp;')
     .replaceAll('<','&lt;')
@@ -288,165 +267,227 @@ function escapeHtml(u='') {
     .replaceAll('\n','<br/>');
 }
 
-function bindAvatarTo(el) {
+function bindAvatarTo(el){
+  if(!avatar || !el) return;
   const msgRect = el.getBoundingClientRect();
   const appRect = document.querySelector('.app').getBoundingClientRect();
   const composerRect = document.querySelector('.composer').getBoundingClientRect();
 
   let top = msgRect.top - appRect.top - 30;
   const maxTop = composerRect.top - appRect.top - 220;
-  if (top > maxTop) top = maxTop;
+  if(top > maxTop) top = maxTop;
 
-  avatar.style.left = '-120px';
+  avatar.style.left = '-140px';
   avatar.style.top = top + 'px';
 }
 
-function push(who, text) {
-  const m = document.createElement('div');
-  m.className = 'msg ' + (who === 'User' ? 'user' : 'ai');
-  m.innerHTML = `<div class="meta">${who}</div>${text}`;
+function push(who,text){
+  const m=document.createElement('div');
+  m.className='msg '+(who==='User'?'user':'ai');
+  m.innerHTML=`<div class="meta">${who}</div>${text}`;
   messages.appendChild(m);
   scrollBottom();
-
-  if (who !== 'User') requestAnimationFrame(() => bindAvatarTo(m));
+  if(who !== 'User' && avatar){
+    requestAnimationFrame(()=>bindAvatarTo(m));
+  }
   return m;
 }
 
-function incrementNFTStatus() {
+function incrementNFTStatus(){
   prompts++;
   nftFill.style.width = Math.min(prompts*10,100)+'%';
-  if (prompts >= 10) nftFill.classList.add('pulse');
+  if(prompts>=10) nftFill.classList.add('pulse');
 }
 
-// ---------------- NFT SELECTION UI ----------------
-function renderNFTSelector(nfts) {
-  if (!nftSelectorEl) return;
+/* ---------------- NFT SELECTOR ---------------- */
+function renderNFTSelector(nfts, activeTokenId=null){
+  if(!nftSelectorEl) return;
   nftSelectorEl.innerHTML = '';
-  nfts.forEach((nft, idx) => {
+
+  nfts.forEach(nft=>{
     const img = document.createElement('img');
     img.src = nft.image;
     img.title = nft.name;
     img.className = 'nft-thumb';
-    img.onclick = () => selectNFT(nft);
+    if(activeTokenId && nft.tokenId === activeTokenId){
+      img.classList.add('selected');
+    }
+    img.onclick = ()=>selectNFT(nft);
     nftSelectorEl.appendChild(img);
-
-    if (idx === 0) selectNFT(nft); // default first NFT
   });
+
+  if(!activeNFT && nfts[0]) selectNFT(nfts[0], true);
 }
 
-function selectNFT(nft) {
-  pfpImg.src = nft.image;
+function selectNFT(nft, silent=false){
+  activeNFT = nft;
   CONFIG.NFT_TOKEN_ID = nft.tokenId;
-  window.activeNFT = nft;
-  push('System', `Selected <b>${escapeHtml(nft.name)}</b> as your active Cyberpet 🐾`);
+  pfpImg.src = nft.image;
+
+  localStorage.setItem('activeNFT', nft.tokenId);
+
+  [...nftSelectorEl.children].forEach(img=>{
+    img.classList.toggle('selected', img.title === nft.name);
+  });
+
+  if(!silent){
+    push('System', `Selected <b>${escapeHtml(nft.name)}</b> as your active Cyberpet 🐾`);
+  }
 }
 
-// ---------------- WALLET + NFT ----------------
-async function connectWallet() {
-  if (!window.ethereum) return alert('No Ethereum wallet detected');
-  await window.ethereum.request({method:'eth_requestAccounts'});
+/* ---------------- WALLET ---------------- */
+async function connectWallet(){
+  if(!window.ethereum) return alert('No Ethereum wallet detected');
+
+  const accounts = await ethereum.request({ method:'eth_requestAccounts' });
+  if(!accounts.length) return;
+
   web3Provider = new ethers.providers.Web3Provider(window.ethereum);
   signer = web3Provider.getSigner();
-  userAddress = (await signer.getAddress()).toLowerCase();
+  userAddress = accounts[0].toLowerCase();
 
   connectBtn.classList.remove('blink');
-  connectBtn.textContent = `Connected: ${userAddress.slice(0,6)}...${userAddress.slice(-4)}`;
+  connectBtn.textContent =
+    `Connected: ${userAddress.slice(0,6)}...${userAddress.slice(-4)}`;
 
   await authenticateAndFetchNFT();
 }
 
-async function authenticateAndFetchNFT() {
-  try {
-    const authResp = await fetch(`${CONFIG.API_BASE}/api/auth`, {
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ address: userAddress }),
-      credentials:'include'
-    });
-    const authData = await authResp.json();
+/* Silent restore */
+async function restoreWalletConnection(){
+  if(!window.ethereum) return;
 
-    const nfts = Array.isArray(authData?.nfts)
-      ? authData.nfts
-      : authData?.nft
-        ? [authData.nft]
-        : [];
+  const accounts = await ethereum.request({ method:'eth_accounts' });
+  if(!accounts.length) return;
 
-    if (nfts.length > 0) {
-      // Render NFT selector and default active NFT
-      renderNFTSelector(nfts);
+  web3Provider = new ethers.providers.Web3Provider(window.ethereum);
+  signer = web3Provider.getSigner();
+  userAddress = accounts[0].toLowerCase();
 
-      inputEl.disabled = false;
-      sendBtn.disabled = false;
-
-      // Provide AI context system prompt with all NFTs
-      const nftContext = nfts.map(n => `
-Cyberpet: ${n.name}
-Token ID: ${n.tokenId}
-Traits:
-${n.traits.map(t=>`- ${t.trait_type}: ${t.value}`).join('\n')}
-`).join('\n');
-
-      push(
-        'System',
-        `Chat unlocked — ${nfts.length} Cyberpets verified 🐾<br/><pre style="white-space:pre-wrap">${escapeHtml(nftContext)}</pre>`
-      );
-    } else {
-      inputEl.disabled = true;
-      sendBtn.disabled = true;
-      push('System', `
-        You need a <b>CyberpetsAi NFT</b> to continue.<br/><br/>
-        <a href="https://opensea.io/collection/cyberpetsai" target="_blank"
-           style="display:inline-block;padding:10px 14px;border-radius:12px;
-           background:linear-gradient(135deg,#06b6d4,#7c3aed);color:white;
-           font-weight:700;text-decoration:none;">Go To NFTs</a>
-      `);
-    }
-
-    console.log('Session + NFTs:', authData);
-  } catch(err) {
-    console.error('Authentication/NFT fetch failed:', err);
-  }
+  connectBtn.classList.remove('blink');
+  connectBtn.textContent =
+    `Connected: ${userAddress.slice(0,6)}...${userAddress.slice(-4)}`;
 }
 
-// ---------------- CHAT ----------------
-async function sendMessage() {
-  const t = inputEl.value.trim(); if(!t) return;
-  push('User', escapeHtml(t));
-  inputEl.value = '';
-  sendBtn.disabled = true;
-  avatar.classList.add('typing');
+/* ---------------- AUTH ---------------- */
+async function authenticateAndFetchNFT(){
+  if(!userAddress) return;
 
-  const p = push('AI','<span class="loading-spinner"></span>');
+  const r = await fetch(`${CONFIG.API_BASE}/api/auth`,{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({ address:userAddress }),
+    credentials:'include'
+  });
 
-  try {
-    const r = await fetch(`${CONFIG.API_BASE}/api/chat`, {
+  const data = await r.json();
+  handleNFTAuth(data);
+}
+
+function handleNFTAuth(data){
+  ownedNFTs = Array.isArray(data?.nfts) ? data.nfts : [];
+
+  if(!ownedNFTs.length){
+    inputEl.disabled = true;
+    sendBtn.disabled = true;
+    push('System','You need a CyberpetsAi NFT to continue.');
+    return;
+  }
+
+  const storedToken = localStorage.getItem('activeNFT');
+  renderNFTSelector(ownedNFTs, storedToken || data.activeTokenId);
+
+  inputEl.disabled = false;
+  sendBtn.disabled = false;
+
+  push('System', `Chat unlocked — ${ownedNFTs.length} Cyberpets verified 🐾`);
+}
+
+/* ---------------- SESSION RESTORE ---------------- */
+async function restoreSession(){
+  if(!CONFIG.ENABLE_SESSION_RESTORE) return; // ⬅️ prevent 404
+
+  try{
+    const r = await fetch('/api/session',{ credentials:'include' });
+    if(!r.ok) return;
+
+    const data = await r.json();
+    userAddress = data.address;
+    ownedNFTs = data.nfts || [];
+
+    connectBtn.classList.remove('blink');
+    connectBtn.textContent =
+      `Connected: ${userAddress.slice(0,6)}...${userAddress.slice(-4)}`;
+
+    const storedToken = localStorage.getItem('activeNFT');
+    renderNFTSelector(ownedNFTs, storedToken || data.activeTokenId);
+
+    inputEl.disabled = false;
+    sendBtn.disabled = false;
+
+    push('System','Session restored — welcome back 🐾');
+  }catch{}
+}
+
+/* ---------------- AUTO AUTH ---------------- */
+async function autoAuthIfNeeded(){
+  if(!userAddress) return;
+  if(ownedNFTs.length) return;
+  await authenticateAndFetchNFT();
+}
+
+/* ---------------- CHAT ---------------- */
+async function sendMessage(){
+  const t=inputEl.value.trim();
+  if(!t) return;
+
+  push('User',escapeHtml(t));
+  inputEl.value='';
+  sendBtn.disabled=true;
+  if(avatar) avatar.classList.add('typing');
+
+  const p=push('AI','<span class="loading-spinner"></span>');
+  try{
+    const r=await fetch(`${CONFIG.API_BASE}/api/chat`,{
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({
-        input: t,
-        activeTokenId: window.activeNFT?.tokenId // tell backend active NFT
+      body:JSON.stringify({
+        input:t,
+        activeTokenId: activeNFT?.tokenId
       }),
       credentials:'include'
     });
-    const d = await r.json();
-    p.innerHTML = `<div class="meta">AI</div>${escapeHtml(d.text||'No response')}`;
-    requestAnimationFrame(() => bindAvatarTo(p));
+
+    const d=await r.json();
+    p.innerHTML=`<div class="meta">AI</div>${escapeHtml(d.text||'No response')}`;
+    requestAnimationFrame(()=>bindAvatarTo(p));
     incrementNFTStatus();
-  } catch {
-    p.innerHTML = '<div class="meta">AI</div>Error contacting AI backend.';
-  } finally {
-    sendBtn.disabled = false;
-    avatar.classList.remove('typing');
+  }catch{
+    p.innerHTML='<div class="meta">AI</div>Error contacting AI backend.';
+  }finally{
+    sendBtn.disabled=false;
+    if(avatar) avatar.classList.remove('typing');
   }
 }
 
-// ---------------- EVENT BINDINGS ----------------
+/* ---------------- INIT ---------------- */
+document.addEventListener('DOMContentLoaded',()=>{
+  if(!avatar) avatar = document.getElementById('avatar');
+});
+
 connectBtn.onclick = connectWallet;
 sendBtn.onclick = sendMessage;
-inputEl.addEventListener('keydown', e => { if(e.key==='Enter') sendMessage(); });
+inputEl.addEventListener('keydown',e=>{
+  if(e.key==='Enter') sendMessage();
+});
 
-// Initial system message
 push('System','Welcome — click Connect Wallet. Chat unlocks only if your wallet holds the configured NFT.');
+
+(async ()=>{
+  await restoreWalletConnection();
+  await restoreSession();
+  await autoAuthIfNeeded();
+})();
 </script>
 </body>
 </html>
