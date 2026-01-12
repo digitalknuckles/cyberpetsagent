@@ -231,8 +231,8 @@ main.chat-area::-webkit-scrollbar-thumb{
 <script>
 const CONFIG = {
   NFT_CONTRACT: "0x1C37df48Fa365B1802D0395eE9F7Db842726Eb81",
-  NFT_TOKEN_ID: null,
-  API_BASE: ""
+  NFT_TOKEN_ID: null,  // dynamic, fetched from server
+  API_BASE: ""          // leave blank for same-origin
 };
 
 const connectBtn = document.getElementById('connectBtn');
@@ -290,55 +290,68 @@ function incrementNFTStatus(){
   if(prompts>=10) nftFill.classList.add('pulse');
 }
 
+// ---------------- WALLET + NFT ----------------
 async function connectWallet(){
   if(!window.ethereum) return alert('No Ethereum wallet detected');
   await window.ethereum.request({method:'eth_requestAccounts'});
   web3Provider=new ethers.providers.Web3Provider(window.ethereum);
   signer=web3Provider.getSigner();
   userAddress=(await signer.getAddress()).toLowerCase();
+
   connectBtn.classList.remove('blink');
   connectBtn.textContent=`Connected: ${userAddress.slice(0,6)}...${userAddress.slice(-4)}`;
-  // session auth (REQUIRED)
-try{
-  const authResp = await fetch(`${CONFIG.API_BASE}/api/auth`,{
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({ address:userAddress }),
-    credentials:'include'
-  });
-  const authData = await authResp.json();
-  console.log('Session:', authData);
-}catch(e){
-  console.warn('Auth failed', e);
-}
-  await checkNFT();
+
+  // Authenticate session + fetch NFT metadata from server
+  await authenticateAndFetchNFT();
 }
 
-async function checkNFT(){
-  const contract=new ethers.Contract(CONFIG.NFT_CONTRACT,[
-    'function ownerOf(uint256 tokenId)view returns(address)',
-    'function balanceOf(address)view returns(uint256)'
-  ],web3Provider);
+async function authenticateAndFetchNFT(){
+  try {
+    const authResp = await fetch(`${CONFIG.API_BASE}/api/auth`,{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ address: userAddress }),
+      credentials:'include'
+    });
 
-  let owns=false;
-  if(CONFIG.NFT_TOKEN_ID){
-    owns=(await contract.ownerOf(CONFIG.NFT_TOKEN_ID)).toLowerCase()===userAddress;
-  }else{
-    owns=(await contract.balanceOf(userAddress)).toNumber()>0;
-  }
+    const authData = await authResp.json();
+    const nfts = Array.isArray(authData?.nfts)
+  ? authData.nfts
+  : authData?.nft
+    ? [authData.nft]
+    : [];
 
-  if(owns){
-    inputEl.disabled=false; sendBtn.disabled=false;
-    push('System','Chat unlocked — hello! Ask anything.');
-    pfpImg.src='https://ipfs.io/ipfs/bafybeid54iqakrphe2yc323kgpnn7r4wubeckxt2fdy4dj3hrhpc2iwxqa';
-  }else{
-    push('System',`
-      You need a <b>CyberpetsAi NFT</b> to continue.<br/><br/>
-      <a href="https://opensea.io/collection/cyberpetsai" target="_blank"
-         style="display:inline-block;padding:10px 14px;border-radius:12px;
-         background:linear-gradient(135deg,#06b6d4,#7c3aed);color:white;
-         font-weight:700;text-decoration:none;">Go To NFTs</a>
-    `);
+    if (nfts.length > 0) {
+      // Use first verified NFT as active identity (can be extended later)
+      const activeNFT = nfts[0];
+
+      pfpImg.src = activeNFT.image;
+      CONFIG.NFT_TOKEN_ID = activeNFT.tokenId;
+
+      inputEl.disabled = false;
+      sendBtn.disabled = false;
+
+      push(
+        'System',
+        `Chat unlocked — <b>${escapeHtml(activeNFT.name)}</b> verified 🐾`
+      );
+    } else {
+      // No verified NFTs — lock chat
+      inputEl.disabled = true;
+      sendBtn.disabled = true;
+
+      push('System', `
+        You need a <b>CyberpetsAi NFT</b> to continue.<br/><br/>
+        <a href="https://opensea.io/collection/cyberpetsai" target="_blank"
+           style="display:inline-block;padding:10px 14px;border-radius:12px;
+           background:linear-gradient(135deg,#06b6d4,#7c3aed);color:white;
+           font-weight:700;text-decoration:none;">Go To NFTs</a>
+      `);
+    }
+
+    console.log('Session + NFTs:', authData);
+  } catch(err){
+    console.error('Authentication/NFT fetch failed:', err);
   }
 }
 
