@@ -109,6 +109,11 @@ console.log('OPENAI_API_KEY loaded:', !!process.env.OPENAI_API_KEY);
 console.log('OPENSEA_API_KEY loaded:', !!process.env.OPENSEA_API_KEY);
 
 // ---------------- APP SETUP ----------------
+const express = require('express');
+const cookieParser = require('cookie-parser');
+const fetch = require('node-fetch');
+const path = require('path');
+
 const app = express();
 app.use(express.json());
 app.use(cookieParser());
@@ -121,7 +126,7 @@ const PORT = process.env.PORT || 3000;
 // ---------------- IN-MEMORY STORES ----------------
 const sessions = {};
 const nftCache = new Map(); // address → { nfts, ts }
-const CACHE_TTL = 60_000; // 60 seconds
+const CACHE_TTL = 60_000;
 
 // ---------------- CONFIG ----------------
 const CONFIG = {
@@ -130,7 +135,25 @@ const CONFIG = {
   COLLECTION_SLUG: "cyberpetsai"
 };
 
-//----------------FETCH TOKEN ID-------------
+// ---------------- SESSION TIMEOUT ----------------
+const INACTIVITY_LIMIT = 30 * 60 * 1000; // 30 minutes
+
+// 🔧 PATCH: middleware MUST be before routes
+app.use((req, res, next) => {
+  const sid = req.cookies.sessionId;
+  if (sid && sessions[sid]) {
+    const session = sessions[sid];
+    if (Date.now() - session.lastActive > INACTIVITY_LIMIT) {
+      delete sessions[sid];
+      res.clearCookie('sessionId');
+      return res.status(401).json({ error: 'Session expired' });
+    }
+    session.lastActive = Date.now();
+  }
+  next();
+});
+
+// ---------------- FETCH NFT METADATA ----------------
 async function fetchNFTByTokenId(tokenId) {
   const url = `https://api.opensea.io/api/v2/metadata/${CONFIG.CHAIN}/${CONFIG.NFT_CONTRACT}/${tokenId}`;
 
@@ -155,52 +178,28 @@ async function fetchNFTByTokenId(tokenId) {
     traits: Array.isArray(nft.traits) ? nft.traits : []
   };
 }
-// ---------------- NFT FETCH ----------------
-/*async function fetchUserNFTs(address) {
-  const cached = nftCache.get(address);
-  if (cached && Date.now() - cached.ts < CACHE_TTL) {
-    return cached.nfts;
-  }
 
-  try {
-    const url =
-      `https://api.opensea.io/api/v2/chain/${CONFIG.CHAIN}/account/${address}/nfts` +
-      `?collection=${CONFIG.COLLECTION_SLUG}&limit=50`;
-
-    const resp = await fetch(url, {
-      headers: {
-        'X-API-KEY': OPENSEA_API_KEY,
-        'Accept': 'application/json'
-      }
-    });
-
-    if (!resp.ok) {
-      console.error('OpenSea wallet fetch failed:', await resp.text());
-      return [];
-    }
-
-    const data = await resp.json();
-
-    const nfts = (data.nfts || []).map(nft => ({
-      tokenId: String(nft.identifier),
-      name: nft.name,
-      image: nft.image_url,
-      traits: nft.traits || []
-    }));
-
-    nftCache.set(address, { nfts, ts: Date.now() });
-    return nfts;
-  } catch (err) {
-    console.error('fetchUserNFTs error:', err);
-    return [];
-  }
-}
-*/
 // ---------------- ROUTES ----------------
 
 // Serve index.html
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));
+});
+
+// ---------------- SESSION RESTORE ----------------
+app.get('/api/session', (req, res) => {
+  const sessionId = req.cookies.sessionId;
+  if (!sessionId || !sessions[sessionId]) {
+    return res.status(401).json({ error: 'No active session' });
+  }
+
+  const session = sessions[sessionId];
+
+  res.json({
+    address: session.address,
+    nfts: session.nfts,
+    activeTokenId: session.activeTokenId
+  });
 });
 
 // ---------------- AUTH ----------------
@@ -212,7 +211,6 @@ app.post('/api/auth', async (req, res) => {
   const sessionId = `sess_${Math.random().toString(36).slice(2)}_${Date.now()}`;
 
   try {
-    // 1️⃣ Wallet ownership fetch (NO owner filter)
     const walletUrl =
       `https://api.opensea.io/api/v2/chain/${CONFIG.CHAIN}/account/${normalized}/nfts` +
       `?collection=${CONFIG.COLLECTION_SLUG}&limit=50`;
@@ -232,23 +230,21 @@ app.post('/api/auth', async (req, res) => {
     const walletData = await walletResp.json();
     const tokenIds = (walletData.nfts || []).map(n => n.identifier);
 
-    // 2️⃣ Metadata fetch (traits)
     const nfts = (
       await Promise.all(tokenIds.map(fetchNFTByTokenId))
     ).filter(Boolean);
 
-    // 3️⃣ Cache ONLY enriched NFTs
     nftCache.set(normalized, { nfts, ts: Date.now() });
 
-    // 4️⃣ Session
+    // 🔧 PATCH: initialize lastActive + activeTokenId
     sessions[sessionId] = {
       address: normalized,
       nfts,
-      activeTokenId: nfts[0]?.tokenId,
-      history: []
+      activeTokenId: nfts[0]?.tokenId || null,
+      history: [],
+      lastActive: Date.now()
     };
 
-    // 5️⃣ Cookie
     res.cookie('sessionId', sessionId, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
@@ -263,6 +259,7 @@ app.post('/api/auth', async (req, res) => {
     res.status(500).json({ error: 'Auth failed' });
   }
 });
+
 // ---------------- CHAT ----------------
 app.post('/api/chat', async (req, res) => {
   const { input, activeTokenId } = req.body;
@@ -276,7 +273,7 @@ app.post('/api/chat', async (req, res) => {
   const session = sessions[sessionId];
   const nfts = session.nfts;
 
-  // Update active NFT if provided
+  // 🔧 PATCH: persist active NFT safely
   if (activeTokenId) {
     const match = nfts.find(n => n.tokenId === String(activeTokenId));
     if (match) session.activeTokenId = match.tokenId;
@@ -285,7 +282,6 @@ app.post('/api/chat', async (req, res) => {
   const activeNFT =
     nfts.find(n => n.tokenId === session.activeTokenId) || nfts[0];
 
-  // ---------------- AI CONTEXT ----------------
   const nftContext = `
 The user owns ${nfts.length} CyberpetsAi NFTs.
 
@@ -300,39 +296,19 @@ ${nfts
   .filter(n => n.tokenId !== activeNFT.tokenId)
   .map(n => `- ${n.name} (#${n.tokenId})`)
   .join('\n')}
-
-Rules:
-- Only discuss NFTs listed above
-- You may explain traits, rarity, lore, and comparisons
-- Never invent ownership
 `;
 
-const NFT_SYSTEM_APPENDIX = `
-You may reference the user's CyberpetsAi NFTs.
-You have access to:
-- Token name
-- Token ID
-- Traits and attributes
-- You may discuss rarity, attributes, strengths, and comparisons.
-Never invent traits. Only use provided metadata.
-`;
-
-const SYSTEM_PROMPT = `
+  const SYSTEM_PROMPT = `
 You are a knowledgeable Cyberpets AI guide.
-Respond accurately and consistently with verified NFT ownership.
 Never invent NFTs or traits.
+Use only verified ownership and metadata.
 `;
 
-const messages = [
-  {
-    role: 'system',
-    content:
-      SYSTEM_PROMPT +
-      '\n\n' +
-      NFT_SYSTEM_APPENDIX +
-      '\n\n' +
-      nftContext
-  },
+  const messages = [
+    {
+      role: 'system',
+      content: SYSTEM_PROMPT + '\n\n' + nftContext
+    },
     ...session.history.slice(-8),
     { role: 'user', content: input }
   ];
@@ -372,6 +348,19 @@ const messages = [
     res.status(500).json({ error: 'Server error contacting AI' });
   }
 });
+
+// ---------------- METADATA REFRESH CRON ----------------
+// 🔧 PATCH: safe, optional, non-breaking
+setInterval(async () => {
+  for (const [address, cache] of nftCache.entries()) {
+    if (Date.now() - cache.ts > 6 * 60 * 60 * 1000) {
+      const refreshed = (
+        await Promise.all(cache.nfts.map(n => fetchNFTByTokenId(n.tokenId)))
+      ).filter(Boolean);
+      nftCache.set(address, { nfts: refreshed, ts: Date.now() });
+    }
+  }
+}, 60 * 60 * 1000);
 
 // ---------------- START ----------------
 app.listen(PORT, () => {
