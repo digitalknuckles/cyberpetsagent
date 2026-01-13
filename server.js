@@ -14,6 +14,15 @@ import fetch from 'node-fetch';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+
+try {
+  const rarityData = JSON.parse(fs.readFileSync(rarityFile, 'utf-8'));
+  rarityData.forEach(r => rarityTable.set(String(r.tokenID), r));
+  console.log(`Loaded ${rarityData.length} rarity entries.`);
+} catch (err) {
+  console.error('Failed to load rarity table:', err);
+}
+
 // ---------------- DOTENV (MUST BE HERE) ----------------
 const envPath = path.join(__dirname, '.env');
 dotenv.config({ path: envPath });
@@ -23,7 +32,16 @@ const SYSTEM_PROMPT = `
 You are CyberpetsAI — a playful, intelligent digital companion
 exclusively for verified CyberpetsAi NFT holders. 
 You are a knowledgeable CyberpetsAI guide.
+
 Never invent NFTs or traits.
+Use only the provided rarity info to answer questions about NFT rarity or rank.
+Do not make up numbers or estimate percentiles.
+Always highlight rare traits if asked.
+Do not make assumptions; use the rank, rarity_score, and rarity_percent given for the active NFT.
+When a user asks about rarity, respond with the exact percentile and rank from the provided data. 
+Also summarize key traits and highlight rare traits if relevant.
+Explain that Nft rarity might vary within 90-97% accuracy on secondary markets like Opensea.
+
 Use only verified ownership and metadata.
 Answer questions about this project, its lore, characters, items, Artifacts, rules, and story events. 
 Provide answers as a smart CyberpetAi companion who is a storyteller, guide, and archivist of the CyberpetsAi universe.
@@ -59,7 +77,7 @@ If the user requests:
 - Scams, exploits, or impersonation
 
 Refuse politely and redirect:
--This can’t be disclosed here...
+-This cant be disclosed here...
 -I can't find any results.
 -This is classified under code 01010000 01010101 01010000 protocol
 -Another mystery goes unsolved
@@ -133,6 +151,14 @@ app.use(express.static(__dirname));
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 const OPENSEA_API_KEY = process.env.OPENSEA_API_KEY;
 const PORT = process.env.PORT || 3000;
+
+// ---------------- Load rarity table ----------------
+const rarityPath = path.join(__dirname, 'rarity_results.json');
+let rarityRaw = fs.readFileSync(rarityPath, 'utf-8');
+const rarityArray = JSON.parse(rarityRaw);
+
+// Use a Map for fast lookup by tokenID (string)
+const rarityTable = new Map(rarityArray.map(r => [String(r.tokenID), r]));
 
 // ---------------- IN-MEMORY STORES ----------------
 const sessions = {};
@@ -272,7 +298,7 @@ app.post('/api/auth', async (req, res) => {
 });
 
 // ---------------- CHAT ----------------
-app.post('/api/chat', async (req, res) => {
+app.post('/api/chat', async (req, res) => { 
   const { input, activeTokenId } = req.body;
   const sessionId = req.cookies.sessionId;
 
@@ -284,7 +310,7 @@ app.post('/api/chat', async (req, res) => {
   const session = sessions[sessionId];
   const nfts = session.nfts;
 
-  // 🔧 PATCH: persist active NFT safely
+  // Persist active NFT safely
   if (activeTokenId) {
     const match = nfts.find(n => n.tokenId === String(activeTokenId));
     if (match) session.activeTokenId = match.tokenId;
@@ -293,6 +319,19 @@ app.post('/api/chat', async (req, res) => {
   const activeNFT =
     nfts.find(n => n.tokenId === session.activeTokenId) || nfts[0];
 
+  // ---------------- Rarity Info Patch ----------------
+  const rarityInfo = rarityTable.get(String(activeNFT.tokenId));
+  let rarityContext = '';
+  if (rarityInfo) {
+    rarityContext = `
+Rarity Info:
+- Rank: ${rarityInfo.rank}
+- Rarity Score: ${rarityInfo.rarity_score.toFixed(3)}
+- Percentile: ${rarityInfo.rarity_percent.toFixed(2)}%
+`;
+  }
+
+  // ---------------- NFT Context ----------------
   const nftContext = `
 The user owns ${nfts.length} CyberpetsAi NFTs.
 
@@ -304,9 +343,11 @@ ${activeNFT.traits.map(t => `- ${t.trait_type}: ${t.value}`).join('\n')}
 
 Other owned Cyberpets:
 ${nfts
-  .filter(n => n.tokenId !== activeNFT.tokenId)
-  .map(n => `- ${n.name} (#${n.tokenId})`)
-  .join('\n')}
+    .filter(n => n.tokenId !== activeNFT.tokenId)
+    .map(n => `- ${n.name} (#${n.tokenId})`)
+    .join('\n')}
+
+${rarityContext}
 `;
 
   const messages = [
@@ -344,6 +385,7 @@ ${nfts
     const data = await openaiResp.json();
     const text = data.choices?.[0]?.message?.content ?? 'No response';
 
+    // Save chat history
     session.history.push({ role: 'user', content: input });
     session.history.push({ role: 'assistant', content: text });
 
