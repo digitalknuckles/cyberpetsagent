@@ -331,6 +331,23 @@ main.chat-area{
   transform: translateY(-1px);
   filter: brightness(1.05);
 }
+.nft-item{
+  position: relative;
+  display: inline-block;
+}
+/*Nft rarity Badge*/
+.rarity-badge{
+  position: absolute;
+  bottom: -8px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 2px 8px;
+  font-size: 10px;
+  font-weight: 700;
+  color: #020617;
+  border-radius: 999px;
+  white-space: nowrap;
+}
 
 </style>
 </head>
@@ -403,6 +420,8 @@ let authAnnounced = false;
 
 let ownedNFTs = [];
 let activeNFT = null;
+
+let rarityTable = new Map();
 
 if (pfpImg) {
   pfpImg.src = DEFAULT_PFP;
@@ -490,34 +509,75 @@ function appendCollectNewButton(container){
   container.appendChild(a);
 }
 
+function getRarityLabel(nft){
+  const count = Array.isArray(nft.traits) ? nft.traits.length : 0;
+
+  if (count >= 8) return { label:'Legendary', color:'#facc15' };
+  if (count >= 6) return { label:'Rare', color:'#38bdf8' };
+  if (count >= 4) return { label:'Uncommon', color:'#34d399' };
+  return { label:'Common', color:'#94a3b8' };
+}
+
+function aiReactToNFTSwitch(nft){
+  if(!nft) return;
+
+  const rarityData = rarityTable.get(nft.tokenId.toString());
+  const rarityText = rarityData ? `Rarity: ${rarityData.rarity_percent.toFixed(1)}% (Rank #${rarityData.rank})` : '';
+
+  const traitSummary = (nft.traits || [])
+    .slice(0,3)
+    .map(t => `${t.trait_type}: ${t.value}`)
+    .join(', ');
+
+  const lines = [
+    `🔄 Cyberpet switched.`,
+    `<b>${escapeHtml(nft.name)}</b> is now active.`,
+    traitSummary ? `Key traits: ${escapeHtml(traitSummary)}` : '',
+    rarityText
+  ].filter(Boolean).join('<br/>');
+
+  push('AI', lines);
+}
+
 /* ---------------- NFT SELECTOR ---------------- */
 function renderNFTSelector(nfts, activeTokenId=null){
   if(!nftSelectorEl) return;
   nftSelectorEl.innerHTML = '';
 
   nfts.forEach(nft=>{
-    const img = document.createElement('img');
-    img.src = nft.image;
-    img.title = nft.name;
-    img.className = 'nft-thumb';
-    if(activeTokenId && nft.tokenId === activeTokenId){
-      img.classList.add('selected');
-    }
-    img.onclick = () => {
-  selectNFT(nft);
-  img.animate(
-    [{ transform:'scale(1)' }, { transform:'scale(1.1)' }, { transform:'scale(1)' }],
-    { duration: 200 }
-  );
-};
-    nftSelectorEl.appendChild(img);
-  });
+  const rarity = getRarityLabel(nft);
+
+  const wrapper = document.createElement('div');
+  wrapper.className = 'nft-item';
+
+  const img = document.createElement('img');
+  img.src = nft.image;
+  img.title = nft.name;
+  img.className = 'nft-thumb';
+  if(activeTokenId && nft.tokenId === activeTokenId){
+    img.classList.add('selected');
+  }
+  img.onclick = ()=>selectNFT(nft);
+
+  // Badge with % (from rarity table)
+  const badge = document.createElement('div');
+  badge.className = 'rarity-badge';
+  badge.textContent = rarity.label; // e.g., "99.97%"
+  badge.style.background = rarity.color;
+
+  wrapper.appendChild(img);
+  wrapper.appendChild(badge);
+  nftSelectorEl.appendChild(wrapper);
+});
 
   if(!activeNFT && nfts[0]) selectNFT(nfts[0], true);
-    appendCollectNewButton(nftSelectorEl);
+
+  appendCollectNewButton(nftSelectorEl);
 }
 
 function selectNFT(nft, silent = false){
+  // 🚫 prevent spam
+  if(activeNFT?.tokenId === nft.tokenId) return;
   // 🛑 Do nothing if already active
   if(activeNFT && activeNFT.tokenId === nft.tokenId){
     return;
@@ -552,6 +612,7 @@ function selectNFT(nft, silent = false){
       'System',
       `Selected <b>${escapeHtml(nft.name)}</b> as your active Cyberpet 🐾`
     );
+     aiReactToNFTSwitch(nft); // 🧠 AI reaction
   }
 }
 
@@ -686,39 +747,84 @@ async function sendMessage(){
   const t=inputEl.value.trim();
   if(!t) return;
 
-  push('User',escapeHtml(t));
+  push('User', escapeHtml(t));
   inputEl.value='';
-  sendBtn.disabled=true;
+  sendBtn.disabled = true;
   if(avatar) avatar.classList.add('typing');
 
-  const p=push('AI','<span class="loading-spinner"></span>');
+  const p = push('AI', '<span class="loading-spinner"></span>');
+
   try{
-    const r=await fetch(`${CONFIG.API_BASE}/api/chat`,{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({
-        input:t,
-        activeTokenId: activeNFT?.tokenId
+    // Get rarity data for active NFT
+    let rarityData = null;
+    if(activeNFT){
+      rarityData = rarityTable.get(activeNFT.tokenId.toString());
+    }
+
+    const r = await fetch(`${CONFIG.API_BASE}/api/chat`, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({
+        input: t,
+        activeTokenId: activeNFT?.tokenId,
+        rarity: rarityData || null  // <-- send rarity info to backend
       }),
-      credentials:'include'
+      credentials: 'include'
     });
 
-    const d=await r.json();
-    p.innerHTML=`<div class="meta">AI</div>${escapeHtml(d.text||'No response')}`;
-    requestAnimationFrame(()=>bindAvatarTo(p));
+    const d = await r.json();
+    p.innerHTML = `<div class="meta">AI</div>${escapeHtml(d.text || 'No response')}`;
+    requestAnimationFrame(() => bindAvatarTo(p));
     incrementNFTStatus();
-  }catch{
-    p.innerHTML='<div class="meta">AI</div>Error contacting AI backend.';
-  }finally{
-    sendBtn.disabled=false;
+  } catch(err){
+    console.error(err);
+    p.innerHTML = '<div class="meta">AI</div>Error contacting AI backend.';
+  } finally {
+    sendBtn.disabled = false;
     if(avatar) avatar.classList.remove('typing');
   }
 }
 
+async function loadRarityTable() {
+  try {
+    const r = await fetch('rarity_results.json'); // adjust path if needed
+    const data = await r.json();
+    // Map tokenID → rarity data for fast lookup
+    data.forEach(nft => rarityTable.set(nft.tokenID.toString(), nft));
+  } catch (err) {
+    console.warn('Failed to load rarity table', err);
+  }
+}
+
+function getRarityLabel(nft){
+  const rarityData = rarityTable.get(nft.tokenId.toString());
+
+  if(rarityData){
+    let color = '#94a3b8'; // default Common
+    if(rarityData.rarity_percent >= 90) color = '#facc15'; // Legendary
+    else if(rarityData.rarity_percent >= 70) color = '#38bdf8'; // Rare
+    else if(rarityData.rarity_percent >= 40) color = '#34d399'; // Uncommon
+
+    return {
+      label: `${rarityData.rarity_percent.toFixed(1)}%`,
+      color: color,
+      score: rarityData.rarity_score,
+      rank: rarityData.rank
+    };
+  }
+
+  // fallback to trait count
+  const count = Array.isArray(nft.traits) ? nft.traits.length : 0;
+  if (count >= 8) return { label:'Legendary', color:'#facc15' };
+  if (count >= 6) return { label:'Rare', color:'#38bdf8' };
+  if (count >= 4) return { label:'Uncommon', color:'#34d399' };
+  return { label:'Common', color:'#94a3b8' };
+}
 /* ---------------- INIT ---------------- */
 document.addEventListener('DOMContentLoaded',()=>{
   if(!activeNFT && nfts[0]) selectNFT(nfts[0], true);
   if(!avatar) avatar = document.getElementById('avatar');
+  loadRarityTable();
 });
 
 
@@ -731,6 +837,7 @@ inputEl.addEventListener('keydown',e=>{
 push('System','Welcome — click Connect Wallet. Chat unlocks only if your wallet holds the configured NFT.');
 
 (async ()=>{
+  await loadRarityTable(); 
   await restoreWalletConnection();
   await restoreSession();
   await autoAuthIfNeeded();
