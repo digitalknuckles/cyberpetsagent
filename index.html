@@ -251,6 +251,9 @@ let signer = null;
 let userAddress = null;
 let prompts = 0;
 
+let hasNFTAccess = false;
+let authAnnounced = false;
+
 let ownedNFTs = [];
 let activeNFT = null;
 
@@ -312,28 +315,50 @@ function renderNFTSelector(nfts, activeTokenId=null){
     if(activeTokenId && nft.tokenId === activeTokenId){
       img.classList.add('selected');
     }
-    img.onclick = ()=>selectNFT(nft);
+    img.onclick = () => {
+  selectNFT(nft);
+  img.animate(
+    [{ transform:'scale(1)' }, { transform:'scale(1.1)' }, { transform:'scale(1)' }],
+    { duration: 200 }
+  );
+};
     nftSelectorEl.appendChild(img);
   });
 
   if(!activeNFT && nfts[0]) selectNFT(nfts[0], true);
 }
 
-function selectNFT(nft, silent=false){
+function selectNFT(nft, silent = false){
+  // 🛑 Do nothing if already active
+  if(activeNFT && activeNFT.tokenId === nft.tokenId){
+    return;
+  }
+
   activeNFT = nft;
   CONFIG.NFT_TOKEN_ID = nft.tokenId;
   pfpImg.src = nft.image;
 
   localStorage.setItem('activeNFT', nft.tokenId);
 
-  [...nftSelectorEl.children].forEach(img=>{
-    img.classList.toggle('selected', img.title === nft.name);
-  });
+  // Highlight selected thumbnail
+  if(nftSelectorEl){
+    [...nftSelectorEl.children].forEach(img=>{
+      img.classList.toggle(
+        'selected',
+        img.title === nft.name
+      );
+    });
+  }
 
+  // Announce ONLY on real user-driven change
   if(!silent){
-    push('System', `Selected <b>${escapeHtml(nft.name)}</b> as your active Cyberpet 🐾`);
+    push(
+      'System',
+      `Selected <b>${escapeHtml(nft.name)}</b> as your active Cyberpet 🐾`
+    );
   }
 }
+
 
 /* ---------------- WALLET ---------------- */
 async function connectWallet(){
@@ -387,26 +412,41 @@ async function authenticateAndFetchNFT(){
 function handleNFTAuth(data){
   ownedNFTs = Array.isArray(data?.nfts) ? data.nfts : [];
 
+  // -------- NO NFT CASE --------
   if(!ownedNFTs.length){
-    inputEl.disabled = true;
-    sendBtn.disabled = true;
-         push('System', `
+    if(hasNFTAccess || !authAnnounced){
+      hasNFTAccess = false;
+      authAnnounced = true;
+
+      inputEl.disabled = true;
+      sendBtn.disabled = true;
+
+      push('System', `
         You need a <b>CyberpetsAi NFT</b> to continue.<br/><br/>
         <a href="https://opensea.io/collection/cyberpetsai" target="_blank"
            style="display:inline-block;padding:10px 14px;border-radius:12px;
-           background:linear-gradient(135deg,#06b6d4,#7c3aed);color:white;
-           font-weight:700;text-decoration:none;">Go To NFTs</a>
+           background:linear-gradient(135deg,#06b6d4,#7c3aed);
+           color:white;font-weight:700;text-decoration:none;">
+           Go To NFTs
+        </a>
       `);
+    }
     return;
   }
 
-  const storedToken = localStorage.getItem('activeNFT');
-  renderNFTSelector(ownedNFTs, storedToken || data.activeTokenId);
+  // -------- HAS NFT CASE --------
+  if(!hasNFTAccess){
+    hasNFTAccess = true;
+    authAnnounced = true;
 
-  inputEl.disabled = false;
-  sendBtn.disabled = false;
+    inputEl.disabled = false;
+    sendBtn.disabled = false;
 
-  push('System', `Chat unlocked — ${ownedNFTs.length} Cyberpets verified 🐾`);
+    const storedToken = localStorage.getItem('activeNFT');
+    renderNFTSelector(ownedNFTs, storedToken || data.activeTokenId);
+
+    push('System', `Chat unlocked — ${ownedNFTs.length} Cyberpets verified 🐾`);
+  }
 }
 
 /* ---------------- SESSION RESTORE ---------------- */
@@ -478,8 +518,10 @@ async function sendMessage(){
 
 /* ---------------- INIT ---------------- */
 document.addEventListener('DOMContentLoaded',()=>{
+  if(!activeNFT && nfts[0]) selectNFT(nfts[0], true);
   if(!avatar) avatar = document.getElementById('avatar');
 });
+
 
 connectBtn.onclick = connectWallet;
 sendBtn.onclick = sendMessage;
