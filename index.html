@@ -327,6 +327,8 @@ const messages = document.getElementById('messages');
 const nftFill = document.getElementById('nftStatusFill');
 const pfpImg = document.getElementById('pfpImg');
 const nftSelectorEl = document.getElementById('nftSelector');
+const DEFAULT_PFP =
+  'https://ipfs.io/ipfs/bafybeicojgyw7ljubtvypesetlfu6np3yiegoskrubpqbtnfyb4z3qptc4';
 
 const pfpToggle = document.getElementById('pfpToggle');
 const nftDropdown = document.getElementById('nftDropdown');
@@ -342,6 +344,10 @@ let authAnnounced = false;
 
 let ownedNFTs = [];
 let activeNFT = null;
+
+if (pfpImg) {
+  pfpImg.src = DEFAULT_PFP;
+}
 
 /* ---------------- UTIL ---------------- */
 function scrollBottom(){
@@ -438,7 +444,10 @@ function selectNFT(nft, silent = false){
 
   activeNFT = nft;
   CONFIG.NFT_TOKEN_ID = nft.tokenId;
-  pfpImg.src = nft.image;
+    // ✅ replace placeholder ONLY after verified NFT selection
+  if (pfpImg && nft?.image) {
+    pfpImg.src = nft.image;
+  }
 
   localStorage.setItem('activeNFT', nft.tokenId);
 
@@ -526,6 +535,10 @@ function handleNFTAuth(data){
 
       inputEl.disabled = true;
       sendBtn.disabled = true;
+
+        if (pfpImg) {
+        pfpImg.src = DEFAULT_PFP;
+      }
 
       push('System', `
         You need a <b>CyberpetsAi NFT</b> to continue.<br/><br/>
