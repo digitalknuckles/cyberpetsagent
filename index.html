@@ -390,7 +390,13 @@ function handleNFTAuth(data){
   if(!ownedNFTs.length){
     inputEl.disabled = true;
     sendBtn.disabled = true;
-    push('System','You need a CyberpetsAi NFT to continue.');
+         push('System', `
+        You need a <b>CyberpetsAi NFT</b> to continue.<br/><br/>
+        <a href="https://opensea.io/collection/cyberpetsai" target="_blank"
+           style="display:inline-block;padding:10px 14px;border-radius:12px;
+           background:linear-gradient(135deg,#06b6d4,#7c3aed);color:white;
+           font-weight:700;text-decoration:none;">Go To NFTs</a>
+      `);
     return;
   }
 
