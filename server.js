@@ -109,10 +109,6 @@ console.log('OPENAI_API_KEY loaded:', !!process.env.OPENAI_API_KEY);
 console.log('OPENSEA_API_KEY loaded:', !!process.env.OPENSEA_API_KEY);
 
 // ---------------- APP SETUP ----------------
-const express = require('express');
-const cookieParser = require('cookie-parser');
-const fetch = require('node-fetch');
-const path = require('path');
 
 const app = express();
 app.use(express.json());
