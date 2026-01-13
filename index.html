@@ -49,8 +49,8 @@ header{
   gap:12px;
 }
 
-.brand{font-weight:700;font-size:18px;}
-.subtitle{font-size:12px;color:var(--muted);}
+.brand{font-weight:700;font-size:24px;}
+.subtitle{font-size:14px;color:var(--muted);}
 
 .send{
   background:linear-gradient(135deg,#06b6d4,#7c3aed);
@@ -271,6 +271,31 @@ main.chat-area{
 .nft-dropdown-list img.selected {
   border-color: var(--accent);
   box-shadow: 0 0 0 1px rgba(124,58,237,0.4);
+}
+@media (max-width: 640px) {
+  .nft-status {
+    position: relative;
+    top: auto;
+    right: auto;
+    width: 80%;
+    margin: 0 auto 12px auto;
+    z-index: 1;
+  }
+}
+@media (max-width: 640px) {
+  .pfp-overlay {
+    position: relative;
+    top: auto;
+    right: auto;
+    left: auto;
+
+    width: 96px;
+    height: 96px;
+
+    margin: 12px auto 8px auto;
+
+    z-index: 1;
+  }
 }
 
 </style>
