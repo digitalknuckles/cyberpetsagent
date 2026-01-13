@@ -198,6 +198,81 @@ main.chat-area{
   animation:spin 1s linear infinite;
 }
 @keyframes spin{to{transform:rotate(360deg)}}
+/* Make PFP clickable */
+.pfp-overlay {
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+.pfp-overlay:hover {
+  transform: scale(1.05);
+}
+
+/* Dropdown container */
+.nft-dropdown {
+  position: fixed;
+  top: 88px;
+  right: 12px;
+  width: 220px;
+  max-height: 360px;
+  background: rgba(11,16,32,0.95);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 16px;
+  backdrop-filter: blur(14px);
+  box-shadow: 0 20px 40px rgba(0,0,0,0.45);
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: dropdownIn 0.18s ease-out;
+}
+
+@keyframes dropdownIn {
+  from { opacity:0; transform: translateY(-8px) scale(0.98); }
+  to { opacity:1; transform: none; }
+}
+
+.nft-dropdown.hidden {
+  display: none;
+}
+
+.nft-dropdown-header {
+  padding: 10px 14px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--muted);
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+
+/* Vertical selector list */
+.nft-dropdown-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px;
+  overflow-y: auto;
+}
+
+/* NFT item */
+.nft-dropdown-list img {
+  width: 100%;
+  height: 48px;
+  object-fit: cover;
+  border-radius: 12px;
+  cursor: pointer;
+  border: 2px solid rgba(255,255,255,0.08);
+  transition: all 0.15s ease;
+}
+
+.nft-dropdown-list img:hover {
+  transform: translateX(2px);
+  border-color: rgba(124,58,237,0.6);
+}
+
+.nft-dropdown-list img.selected {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px rgba(124,58,237,0.4);
+}
+
 </style>
 </head>
 
@@ -211,9 +286,16 @@ main.chat-area{
   <button id="connectBtn" class="send blink" style="margin-left:auto">Connect Wallet</button>
 </header>
 
-<div class="pfp-overlay"><img id="pfpImg"></div>
+<div class="pfp-overlay" id="pfpToggle">
+  <img id="pfpImg" />
+</div>
+
+<div class="nft-dropdown hidden" id="nftDropdown">
+  <div class="nft-dropdown-list" id="nftSelector"></div>
+</div>
+
 <div class="nft-status"><div id="nftStatusFill" class="nft-status-fill"></div></div>
-<div class="nft-selector" id="nftSelector"></div>
+
 
 <main class="chat-area">
   <div class="messages" id="messages"></div>
@@ -237,6 +319,7 @@ const CONFIG = {
   ENABLE_SESSION_RESTORE: false // ⬅️ disable missing endpoint
 };
 
+//-----------DOMs lookup---------------
 const connectBtn = document.getElementById('connectBtn');
 const sendBtn = document.getElementById('send');
 const inputEl = document.getElementById('input');
@@ -244,6 +327,9 @@ const messages = document.getElementById('messages');
 const nftFill = document.getElementById('nftStatusFill');
 const pfpImg = document.getElementById('pfpImg');
 const nftSelectorEl = document.getElementById('nftSelector');
+
+const pfpToggle = document.getElementById('pfpToggle');
+const nftDropdown = document.getElementById('nftDropdown');
 
 let avatar = document.getElementById('avatar');
 let web3Provider = null;
@@ -302,6 +388,22 @@ function incrementNFTStatus(){
   if(prompts>=10) nftFill.classList.add('pulse');
 }
 
+/* ---------------- NFT DROPDOWN TOGGLE ---------------- */
+pfpToggle?.addEventListener('click', (e) => {
+  e.stopPropagation();
+  nftDropdown?.classList.toggle('hidden');
+});
+
+document.addEventListener('click', (e) => {
+  if (
+    nftDropdown &&
+    !nftDropdown.contains(e.target) &&
+    !pfpToggle.contains(e.target)
+  ) {
+    nftDropdown.classList.add('hidden');
+  }
+});
+
 /* ---------------- NFT SELECTOR ---------------- */
 function renderNFTSelector(nfts, activeTokenId=null){
   if(!nftSelectorEl) return;
@@ -339,6 +441,10 @@ function selectNFT(nft, silent = false){
   pfpImg.src = nft.image;
 
   localStorage.setItem('activeNFT', nft.tokenId);
+
+  if(nftDropdown){
+    nftDropdown.classList.add('hidden');
+  }
 
   // Highlight selected thumbnail
   if(nftSelectorEl){
