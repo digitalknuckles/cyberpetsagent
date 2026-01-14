@@ -541,6 +541,7 @@ function aiReactToNFTSwitch(nft){
 
 /* ---------------- NFT SELECTOR ---------------- */
 function renderNFTSelector(nfts, activeTokenId=null){
+  if(!Array.isArray(nfts) || !nfts.length) return;
   if(!nftSelectorEl) return;
   nftSelectorEl.innerHTML = '';
 
@@ -822,7 +823,6 @@ function getRarityLabel(nft){
 }
 /* ---------------- INIT ---------------- */
 document.addEventListener('DOMContentLoaded',()=>{
-  if(!activeNFT && nfts[0]) selectNFT(nfts[0], true);
   if(!avatar) avatar = document.getElementById('avatar');
   loadRarityTable();
 });
