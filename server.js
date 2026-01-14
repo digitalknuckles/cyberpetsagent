@@ -14,15 +14,6 @@ import fetch from 'node-fetch';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-
-try {
-  const rarityData = JSON.parse(fs.readFileSync(rarityFile, 'utf-8'));
-  rarityData.forEach(r => rarityTable.set(String(r.tokenID), r));
-  console.log(`Loaded ${rarityData.length} rarity entries.`);
-} catch (err) {
-  console.error('Failed to load rarity table:', err);
-}
-
 // ---------------- DOTENV (MUST BE HERE) ----------------
 const envPath = path.join(__dirname, '.env');
 dotenv.config({ path: envPath });
