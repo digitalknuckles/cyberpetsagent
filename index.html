@@ -182,12 +182,19 @@ main.chat-area{
 
 .avatar{
   position:absolute;
-  width:200px;
-  height:200px;
-  background:url('https://ipfs.io/ipfs/bafybeid54iqakrphe2yc323kgpnn7r4wubeckxt2fdy4dj3hrhpc2iwxqa') center/contain no-repeat;
+  width:300px;       /* 🔧 change here */
+  height:300px;      /* 🔧 change here */
   pointer-events:none;
   animation:bounce 1s ease-in-out infinite alternate;
   z-index:1;
+}
+
+/* Mobile scaling */
+@media (max-width: 640px) {
+  .avatar{
+    width:200px;
+    height:200px;
+  }
 }
 .avatar.typing{ animation:bounce .3s infinite alternate; }
 @keyframes bounce{ from{transform:translateY(0)} to{transform:translateY(-10px)} }
@@ -336,22 +343,43 @@ main.chat-area{
   display: inline-block;
 }
 /*Nft rarity Badge*/
-.rarity-badge{
-  position: absolute;
-  bottom: -8px;
-  left: 50%;
-  transform: translateX(-50%);
-  padding: 2px 8px;
-  font-size: 10px;
-  font-weight: 700;
-  color: #020617;
-  border-radius: 999px;
-  white-space: nowrap;
+.rarity-badge {
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:6px;
+  font-size:11px;
+  padding:4px 8px;
+  border-radius:999px;
+  color:#0f172a;
+  font-weight:700;
+  margin-top:6px;
+}
+
+.rarity-percent {
+  font-weight:600;
+  opacity:.9;
+}
+
+.trait-tags {
+  display:flex;
+  flex-wrap:wrap;
+  gap:4px;
+  margin-top:6px;
+}
+
+.trait-tag {
+  font-size:10px;
+  padding:3px 6px;
+  border-radius:999px;
+  background:#1e293b;
+  color:#e5e7eb;
+  opacity:.85;
 }
 
 </style>
 </head>
-
+<link rel="icon" href="favicon.ico" type="image/x-icon">
 <body>
 <div class="app">
 <header>
@@ -382,7 +410,9 @@ main.chat-area{
   <button id="send" class="send" disabled>Send</button>
 </div>
 
-<div class="avatar" id="avatar"></div>
+<div class="avatar" id="avatar">
+  <img id="avatarImg" src="https://ipfs.io/ipfs/default.png" />
+</div>
 
 
 <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
@@ -446,25 +476,65 @@ function bindAvatarTo(el){
   const appRect = document.querySelector('.app').getBoundingClientRect();
   const composerRect = document.querySelector('.composer').getBoundingClientRect();
 
-  let top = msgRect.top - appRect.top - 30;
-  const maxTop = composerRect.top - appRect.top - 220;
+  // Adjust top so avatar doesn't go below composer
+  let top = msgRect.top - appRect.top - 100;
+  const maxTop = composerRect.top - appRect.top - avatar.offsetHeight - 100;
   if(top > maxTop) top = maxTop;
+  if(top < 0) top = 0;
 
-  avatar.style.left = '-140px';
+  avatar.style.left = '-200px';  // distance from chat area, adjust as needed-----------------------------------------------------
   avatar.style.top = top + 'px';
+  avatar.style.position = 'absolute';
+  avatar.style.zIndex = 1;
 }
 
-function push(who,text){
-  const m=document.createElement('div');
-  m.className='msg '+(who==='User'?'user':'ai');
-  m.innerHTML=`<div class="meta">${who}</div>${text}`;
+function updateFloatingAvatar(tokenId){
+  if(!avatar) return;
+
+  avatar.innerHTML = '';
+
+  const url = resolveAvatarUrlFromToken(tokenId) || DEFAULT_PFP;
+
+  // Remove any previous image
+  avatar.innerHTML = '';
+
+  // Create new image
+  const img = document.createElement('img');
+  img.src = url;
+  img.style.width = '100%';
+  img.style.height = '100%';
+  img.style.objectFit = 'contain';
+  img.style.opacity = 0;
+  img.style.transition = 'opacity 0.3s ease';
+
+  avatar.appendChild(img);
+
+  // Fade-in
+  setTimeout(()=>{ img.style.opacity = 1; }, 50);
+}
+
+
+//---------push----------
+function push(who, text){
+  const m = document.createElement('div');
+  m.className = 'msg ' + (who === 'User' ? 'user' : 'ai');
+
+  m.innerHTML = `<div class="meta">${who}</div>${text}`;
   messages.appendChild(m);
   scrollBottom();
+
   if(who !== 'User' && avatar){
     requestAnimationFrame(()=>bindAvatarTo(m));
   }
   return m;
 }
+
+// 🔒 PFP SAFETY LOCK
+const setPfp = (url) => {
+  if (typeof url === 'string') {
+    pfpImg.src = url;
+  }
+};
 
 function incrementNFTStatus(){
   prompts++;
@@ -509,13 +579,20 @@ function appendCollectNewButton(container){
   container.appendChild(a);
 }
 
-function getRarityLabel(nft){
-  const count = Array.isArray(nft.traits) ? nft.traits.length : 0;
+function getRarityFromTable(tokenId){
+  const r = rarityTable.get(String(tokenId));
+  if (!r || typeof r.rarity_percent !== 'number') {
+    return { label:'Common', percent:null, color:'#94a3b8' };
+  }
 
-  if (count >= 8) return { label:'Legendary', color:'#facc15' };
-  if (count >= 6) return { label:'Rare', color:'#38bdf8' };
-  if (count >= 4) return { label:'Uncommon', color:'#34d399' };
-  return { label:'Common', color:'#94a3b8' };
+  const pct = r.rarity_percent;
+
+  if (pct <= 1)  return { label:'Legendary', percent:pct, color:'#facc15' };
+  if (pct <= 5)  return { label:'Epic',      percent:pct, color:'#a855f7' };
+  if (pct <= 15) return { label:'Rare',       percent:pct, color:'#38bdf8' };
+  if (pct <= 40) return { label:'Uncommon',   percent:pct, color:'#34d399' };
+
+  return { label:'Common', percent:pct, color:'#94a3b8' };
 }
 
 function aiReactToNFTSwitch(nft){
@@ -539,6 +616,17 @@ function aiReactToNFTSwitch(nft){
   push('AI', lines);
 }
 
+function resolveNFTImage(nft){
+  if(!nft?.image) return DEFAULT_PFP;
+
+  if(typeof nft.image === 'string') return nft.image;
+
+  if(nft.image.cid && nft.image.file){
+    return `https://gold-junior-swordfish-840.mypinata.cloud/ipfs/${nft.image.cid}/${encodeURIComponent(nft.image.file)}`;
+  }
+
+  return DEFAULT_PFP;
+}
 /* ---------------- NFT SELECTOR ---------------- */
 function renderNFTSelector(nfts, activeTokenId=null){
   if(!Array.isArray(nfts) || !nfts.length) return;
@@ -546,13 +634,18 @@ function renderNFTSelector(nfts, activeTokenId=null){
   nftSelectorEl.innerHTML = '';
 
   nfts.forEach(nft=>{
-  const rarity = getRarityLabel(nft);
+  const rarity = getRarityFromTable(nft.tokenId);
 
   const wrapper = document.createElement('div');
   wrapper.className = 'nft-item';
 
   const img = document.createElement('img');
-  img.src = nft.image;
+  img.src =
+  typeof nft.image === 'string'
+    ? nft.image
+    : nft.image?.cid && nft.image?.file
+      ? `https://gold-junior-swordfish-840.mypinata.cloud/ipfs/${nft.image.cid}/${encodeURIComponent(nft.image.file)}`
+      : DEFAULT_PFP;
   img.title = nft.name;
   img.className = 'nft-thumb';
   if(activeTokenId && nft.tokenId === activeTokenId){
@@ -561,13 +654,35 @@ function renderNFTSelector(nfts, activeTokenId=null){
   img.onclick = ()=>selectNFT(nft);
 
   // Badge with % (from rarity table)
-  const badge = document.createElement('div');
-  badge.className = 'rarity-badge';
-  badge.textContent = rarity.label; // e.g., "99.97%"
-  badge.style.background = rarity.color;
+const badge = document.createElement('div');
+badge.className = 'rarity-badge';
 
+badge.textContent =
+  rarity.percent != null
+    ? `${rarity.label} · ${rarity.percent.toFixed(2)}%`
+    : rarity.label;
+
+badge.style.background = rarity.color;
+
+
+badge.innerHTML = ` 
+  <span class="rarity-label">${rarity.label}</span> 
+  ${rarity.percent !== null
+    ? `<span class="rarity-percent">${rarity.percent.toFixed(2)}%</span>`
+    : ''}
+`;
+const tags = document.createElement('div');
+tags.className = 'trait-tags';
+
+(nft.traits || []).slice(0, 3).forEach(t => {
+  const tag = document.createElement('span');
+  tag.className = 'trait-tag';
+  tag.textContent = t.trait_type;
+  tags.appendChild(tag);
+});
   wrapper.appendChild(img);
   wrapper.appendChild(badge);
+  //wrapper.appendChild(tags);
   nftSelectorEl.appendChild(wrapper);
 });
 
@@ -576,19 +691,16 @@ function renderNFTSelector(nfts, activeTokenId=null){
   appendCollectNewButton(nftSelectorEl);
 }
 
-function selectNFT(nft, silent = false){
-  // 🚫 prevent spam
-  if(activeNFT?.tokenId === nft.tokenId) return;
-  // 🛑 Do nothing if already active
-  if(activeNFT && activeNFT.tokenId === nft.tokenId){
-    return;
-  }
 
+function selectNFT(nft, silent = false){
+  if(activeNFT?.tokenId === nft.tokenId) return;
   activeNFT = nft;
   CONFIG.NFT_TOKEN_ID = nft.tokenId;
-    // ✅ replace placeholder ONLY after verified NFT selection
+  updateFloatingAvatar(nft?.tokenId);
+
+  // ✅ replace placeholder ONLY after verified NFT selection
   if (pfpImg && nft?.image) {
-    pfpImg.src = nft.image;
+  pfpImg.src = resolveNFTImage(nft);
   }
 
   localStorage.setItem('activeNFT', nft.tokenId);
@@ -607,16 +719,48 @@ function selectNFT(nft, silent = false){
     });
   }
 
-  // Announce ONLY on real user-driven change
   if(!silent){
     push(
       'System',
       `Selected <b>${escapeHtml(nft.name)}</b> as your active Cyberpet 🐾`
     );
-     aiReactToNFTSwitch(nft); // 🧠 AI reaction
+    aiReactToNFTSwitch(nft); // 🧠 AI reaction
+  }
+}
+let avatarMap = new Map();
+
+const AVATAR_BASE_CID =
+  'bafybeigx35rp5funr762mjmbqdjhhz5lrq66rmhxb5viprkdj3wn3jsvjy';
+
+async function loadAvatarMap(){
+  try{
+    const r = await fetch('cyberpet_avatar_map.json');
+    const data = await r.json();
+
+    data.forEach(row=>{
+      if(row.tokenID && row["attributes[CyberPetAi]"]){
+        avatarMap.set(
+          row.tokenID.toString(),
+          row["attributes[CyberPetAi]"].trim()
+        );
+      }
+    });
+
+    console.log('[AvatarMap] Loaded', avatarMap.size, 'entries');
+  }catch(err){
+    console.warn('Failed to load avatar map', err);
   }
 }
 
+function resolveAvatarUrlFromToken(tokenId){
+  if(!tokenId) return null;
+
+  const code = avatarMap.get(tokenId.toString());
+  if(typeof code !== 'string') return null;
+
+  const fileName = encodeURIComponent(`${code}.png`);
+  return `https://gold-junior-swordfish-840.mypinata.cloud/ipfs/${AVATAR_BASE_CID}/${fileName}`;
+}
 /* ---------------- WALLET ---------------- */
 async function connectWallet(){
   if(!window.ethereum) return alert('No Ethereum wallet detected');
@@ -669,7 +813,6 @@ async function authenticateAndFetchNFT(){
 function handleNFTAuth(data){
   ownedNFTs = Array.isArray(data?.nfts) ? data.nfts : [];
 
-  // -------- NO NFT CASE --------
   if(!ownedNFTs.length){
     if(hasNFTAccess || !authAnnounced){
       hasNFTAccess = false;
@@ -695,7 +838,6 @@ function handleNFTAuth(data){
     return;
   }
 
-  // -------- HAS NFT CASE --------
   if(!hasNFTAccess){
     hasNFTAccess = true;
     authAnnounced = true;
@@ -710,7 +852,6 @@ function handleNFTAuth(data){
   }
 }
 
-/* ---------------- SESSION RESTORE ---------------- */
 async function restoreSession(){
   if(!CONFIG.ENABLE_SESSION_RESTORE) return; // ⬅️ prevent 404
 
@@ -736,17 +877,12 @@ async function restoreSession(){
   }catch{}
 }
 
-/* ---------------- AUTO AUTH ---------------- */
-async function autoAuthIfNeeded(){
-  if(!userAddress) return;
-  if(ownedNFTs.length) return;
-  await authenticateAndFetchNFT();
-}
-
 /* ---------------- CHAT ---------------- */
 async function sendMessage(){
   const t=inputEl.value.trim();
   if(!t) return;
+
+  updateFloatingAvatar(activeNFT?.tokenId);
 
   push('User', escapeHtml(t));
   inputEl.value='';
@@ -756,7 +892,6 @@ async function sendMessage(){
   const p = push('AI', '<span class="loading-spinner"></span>');
 
   try{
-    // Get rarity data for active NFT
     let rarityData = null;
     if(activeNFT){
       rarityData = rarityTable.get(activeNFT.tokenId.toString());
@@ -768,12 +903,60 @@ async function sendMessage(){
       body: JSON.stringify({
         input: t,
         activeTokenId: activeNFT?.tokenId,
-        rarity: rarityData || null  // <-- send rarity info to backend
+        rarity: rarityData || null
       }),
       credentials: 'include'
     });
 
     const d = await r.json();
+
+    // ---------------- NEW: Swap PFP with avatar----------------
+  // this replaces the nft pfp upon Ai response
+/*let url = null;
+
+/*
+// 1️⃣ ONLY accept string avatarUrl from server
+if (typeof d?.avatarUrl === 'string') {
+  url = d.avatarUrl;
+}
+*/
+/*
+// 2️⃣ Deterministic token → avatar map
+if (!url && activeNFT?.tokenId) {
+  const resolved = resolveAvatarUrlFromToken(activeNFT.tokenId);
+  if (typeof resolved === 'string') {
+    url = resolved;
+  }
+}
+
+// 3️⃣ LAST resort: NFT image (string only)
+if (!url && typeof activeNFT?.image === 'string') {
+  url = activeNFT.image;
+}
+
+// 🚨 HARD FAIL GUARD
+if (typeof url !== 'string') {
+  console.warn('Avatar swap skipped — invalid url:', url);
+  return;
+}
+
+if (pfpImg && typeof pfpImg.src !== 'string') {
+  pfpImg.src = DEFAULT_PFP;
+}
+
+// ✅ Swap ONLY after validation
+pfpImg.style.opacity = '0';
+pfpImg.onload = () => {
+  pfpImg.style.opacity = '1';
+};
+pfpImg.onerror = () => {
+  console.warn('Avatar failed to load:', url);
+  pfpImg.style.opacity = '1'; // restore visibility
+};
+pfpImg.src = url;
+*/
+    // ---------------- END PATCH ----------------
+
     p.innerHTML = `<div class="meta">AI</div>${escapeHtml(d.text || 'No response')}`;
     requestAnimationFrame(() => bindAvatarTo(p));
     incrementNFTStatus();
@@ -786,47 +969,62 @@ async function sendMessage(){
   }
 }
 
+//---------------old push 
+/*
+function push(who, text){
+  const m = document.createElement('div');
+  m.className = 'msg '+(who==='User'?'user':'ai');
+
+  let avatarHTML = '';
+  if(who === 'AI'){
+    // Use active NFT avatar or default
+    const url = activeNFT ? resolveAvatarUrlFromToken(activeNFT.tokenId) : DEFAULT_PFP;
+    avatarHTML = `<img class="msg-avatar" src="${url}" />`;
+  }
+
+  m.innerHTML = `${avatarHTML}<div class="meta">${who}</div>${text}`;
+  messages.appendChild(m);
+  scrollBottom();
+
+  if(who !== 'User' && avatar){
+    requestAnimationFrame(()=>bindAvatarTo(m));
+  }
+
+  return m;
+}
+*/
+
+async function autoAuthIfNeeded(){
+  if(!userAddress) return;
+  if(hasNFTAccess) return;
+
+  try{
+    await authenticateAndFetchNFT();
+  }catch(err){
+    console.warn('Auto-auth failed', err);
+  }
+}
+
+/* ---------------- INIT ------------------------------------------------------------------------------------------------------ */
 async function loadRarityTable() {
   try {
-    const r = await fetch('rarity_results.json'); // adjust path if needed
+    const r = await fetch('rarity_results.json');
     const data = await r.json();
-    // Map tokenID → rarity data for fast lookup
     data.forEach(nft => rarityTable.set(nft.tokenID.toString(), nft));
+      if (ownedNFTs.length) {
+      renderNFTSelector(ownedNFTs, activeNFT?.tokenId);
+    }
   } catch (err) {
     console.warn('Failed to load rarity table', err);
   }
 }
 
-function getRarityLabel(nft){
-  const rarityData = rarityTable.get(nft.tokenId.toString());
-
-  if(rarityData){
-    let color = '#94a3b8'; // default Common
-    if(rarityData.rarity_percent >= 90) color = '#facc15'; // Legendary
-    else if(rarityData.rarity_percent >= 70) color = '#38bdf8'; // Rare
-    else if(rarityData.rarity_percent >= 40) color = '#34d399'; // Uncommon
-
-    return {
-      label: `${rarityData.rarity_percent.toFixed(1)}%`,
-      color: color,
-      score: rarityData.rarity_score,
-      rank: rarityData.rank
-    };
-  }
-
-  // fallback to trait count
-  const count = Array.isArray(nft.traits) ? nft.traits.length : 0;
-  if (count >= 8) return { label:'Legendary', color:'#facc15' };
-  if (count >= 6) return { label:'Rare', color:'#38bdf8' };
-  if (count >= 4) return { label:'Uncommon', color:'#34d399' };
-  return { label:'Common', color:'#94a3b8' };
-}
-/* ---------------- INIT ---------------- */
-document.addEventListener('DOMContentLoaded',()=>{
+document.addEventListener('DOMContentLoaded', async ()=>{
   if(!avatar) avatar = document.getElementById('avatar');
-  loadRarityTable();
-});
 
+  await loadRarityTable();   // ⬅️ MUST finish first
+  await loadAvatarMap();
+});
 
 connectBtn.onclick = connectWallet;
 sendBtn.onclick = sendMessage;
@@ -837,7 +1035,8 @@ inputEl.addEventListener('keydown',e=>{
 push('System','Welcome — click Connect Wallet. Chat unlocks only if your wallet holds the configured NFT.');
 
 (async ()=>{
-  await loadRarityTable(); 
+  await loadRarityTable();
+  await loadAvatarMap();  
   await restoreWalletConnection();
   await restoreSession();
   await autoAuthIfNeeded();
