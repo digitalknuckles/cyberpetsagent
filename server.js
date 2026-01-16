@@ -1,5 +1,4 @@
 // server.js (ESM)
-
 // ---------------- IMPORTS ----------------
 import fs from 'fs';
 import path from 'path';
@@ -18,6 +17,7 @@ const __dirname = path.dirname(__filename);
 const envPath = path.join(__dirname, '.env');
 dotenv.config({ path: envPath });
 
+//-------Sysyem prompt goes here------
 //------------------Ai System prompts----------------
 const SYSTEM_PROMPT = `
 You are CyberpetsAI — a playful, intelligent digital companion
@@ -125,6 +125,7 @@ Train hard. Love harder. Own the future. 🚀🎮🐾
 
 `;
 
+
 // ---------------- DEBUG (TEMPORARY) ----------------
 console.log('CWD:', process.cwd());
 console.log('ENV PATH:', envPath);
@@ -151,6 +152,42 @@ const rarityArray = JSON.parse(rarityRaw);
 // Use a Map for fast lookup by tokenID (string)
 const rarityTable = new Map(rarityArray.map(r => [String(r.tokenID), r]));
 
+// ---------------- Load CyberPetAi Avatar Map ----------------
+const avatarMapPath = path.join(__dirname, 'cyberpet_avatar_map.json');
+let avatarMap = new Map();
+
+const sample = avatarMap.entries().next().value;
+console.log('AvatarMap sample:', sample);
+
+try {
+  const avatarRaw = fs.readFileSync(avatarMapPath, 'utf-8');
+  const avatarJson = JSON.parse(avatarRaw);
+avatarJson.forEach(row => {
+  const tokenId = row.tokenID;
+  const code = row["attributes[CyberPetAi]"];
+
+  if (tokenId && typeof code === 'string') {
+    avatarMap.set(String(tokenId), code.trim());
+  }
+});
+  console.log('Loaded CyberPetAi avatar map:', avatarMap.size, 'entries');
+} catch (err) {
+  console.warn('Failed to load CyberPetAi avatar map:', err);
+}
+
+// Base IPFS folder for avatars
+const AVATAR_FOLDER_CID = 'bafybeigx35rp5funr762mjmbqdjhhz5lrq66rmhxb5viprkdj3wn3jsvjy';
+const AVATAR_BASE_URL = `https://gold-junior-swordfish-840.mypinata.cloud/ipfs/${AVATAR_FOLDER_CID}/`;
+
+// Helper to resolve avatar URL for NFT
+function resolveAvatarForNFT(nft){
+  if(!nft?.tokenId) return null;
+
+  const code = avatarMap.get(String(nft.tokenId));
+  if (typeof code !== 'string') return null;
+
+  return AVATAR_BASE_URL + encodeURIComponent(`${code}.png`);
+}
 // ---------------- IN-MEMORY STORES ----------------
 const sessions = {};
 const nftCache = new Map(); // address → { nfts, ts }
@@ -198,13 +235,20 @@ async function fetchNFTByTokenId(tokenId) {
   }
 
   const nft = await resp.json();
-
-  return {
-    tokenId: String(tokenId),
-    name: nft.name || `CyberPet #${tokenId}`,
-    image: nft.image || nft.image_url,
-    traits: Array.isArray(nft.traits) ? nft.traits : []
-  };
+const image =
+  typeof nft.image === 'string'
+    ? nft.image
+    : typeof nft.image?.url === 'string'
+      ? nft.image.url
+      : typeof nft.image_url === 'string'
+        ? nft.image_url
+        : null;
+return {
+  tokenId: String(tokenId),
+  name: nft.name || `CyberPet #${tokenId}`,
+  image,
+  traits: Array.isArray(nft.traits) ? nft.traits : []
+};
 }
 
 // ---------------- ROUTES ----------------
@@ -322,6 +366,12 @@ Rarity Info:
 `;
   }
 
+  // ---------------- Avatar Resolution Patch ----------------
+  const avatarUrl = resolveAvatarForNFT(activeNFT);
+  if(avatarUrl){
+    //activeNFT.resolvedAvatar = avatarUrl; // Attach avatar URL to activeNFT
+  }
+
   // ---------------- NFT Context ----------------
   const nftContext = `
 The user owns ${nfts.length} CyberpetsAi NFTs.
@@ -339,6 +389,7 @@ ${nfts
     .join('\n')}
 
 ${rarityContext}
+Avatar URL: ${avatarUrl || 'Default'}
 `;
 
   const messages = [
@@ -380,7 +431,7 @@ ${rarityContext}
     session.history.push({ role: 'user', content: input });
     session.history.push({ role: 'assistant', content: text });
 
-    res.json({ text });
+    res.json({ text, avatarUrl });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Server error contacting AI' });
@@ -388,7 +439,6 @@ ${rarityContext}
 });
 
 // ---------------- METADATA REFRESH CRON ----------------
-// 🔧 PATCH: safe, optional, non-breaking
 setInterval(async () => {
   for (const [address, cache] of nftCache.entries()) {
     if (Date.now() - cache.ts > 6 * 60 * 60 * 1000) {
