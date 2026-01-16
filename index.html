@@ -579,20 +579,31 @@ function appendCollectNewButton(container){
   container.appendChild(a);
 }
 
-function getRarityFromTable(tokenId){
-  const r = rarityTable.get(String(tokenId));
-  if (!r || typeof r.rarity_percent !== 'number') {
-    return { label:'Common', percent:null, color:'#94a3b8' };
+function getRarityFromTable(tokenId) {
+  const r = rarityTable.get(tokenId.toString());
+  if (!r || !r.rank) {
+    return { label:'Common', color:'#9ca3af', percent:null };
   }
 
-  const pct = r.rarity_percent;
+  const rank = Number(r.rank);
+  const total = rarityTable.size;
 
-  if (pct <= 1)  return { label:'Legendary', percent:pct, color:'#facc15' };
-  if (pct <= 5)  return { label:'Epic',      percent:pct, color:'#a855f7' };
-  if (pct <= 15) return { label:'Rare',       percent:pct, color:'#38bdf8' };
-  if (pct <= 40) return { label:'Uncommon',   percent:pct, color:'#34d399' };
+  const pct = (1 - rank / total) * 100;
 
-  return { label:'Common', percent:pct, color:'#94a3b8' };
+  let label = 'Common';
+  let color = '#9ca3af';
+
+  if (rank <= total * 0.01) {
+    label = 'Legendary'; color = '#f59e0b';
+  } else if (rank <= total * 0.05) {
+    label = 'Epic'; color = '#8b5cf6';
+  } else if (rank <= total * 0.15) {
+    label = 'Rare'; color = '#3b82f6';
+  } else if (rank <= total * 0.35) {
+    label = 'Uncommon'; color = '#22c55e';
+  }
+
+  return { label, color, percent: pct };
 }
 
 function aiReactToNFTSwitch(nft){
@@ -627,7 +638,8 @@ function resolveNFTImage(nft){
 
   return DEFAULT_PFP;
 }
-/* ---------------- NFT SELECTOR ---------------- */
+
+/* ---------------- NFT SELECTOR -------------------------------------------------rarity call--------------------------- */
 function renderNFTSelector(nfts, activeTokenId=null){
   if(!Array.isArray(nfts) || !nfts.length) return;
   if(!nftSelectorEl) return;
@@ -656,21 +668,22 @@ function renderNFTSelector(nfts, activeTokenId=null){
   // Badge with % (from rarity table)
 const badge = document.createElement('div');
 badge.className = 'rarity-badge';
+badge.style.backgroundColor = rarity.color;
 
-badge.textContent =
-  rarity.percent != null
-    ? `${rarity.label} · ${rarity.percent.toFixed(2)}%`
-    : rarity.label;
+const label = document.createElement('span');
+label.className = 'rarity-label';
+label.textContent = rarity.label;
 
-badge.style.background = rarity.color;
+badge.appendChild(label);
 
+if (rarity.percent != null) {
+  const pct = document.createElement('span');
+  pct.className = 'rarity-percent';
+  pct.textContent = `${rarity.percent.toFixed(2)}%`;
+  badge.appendChild(pct);
+}
 
-badge.innerHTML = ` 
-  <span class="rarity-label">${rarity.label}</span> 
-  ${rarity.percent !== null
-    ? `<span class="rarity-percent">${rarity.percent.toFixed(2)}%</span>`
-    : ''}
-`;
+//--------------
 const tags = document.createElement('div');
 tags.className = 'trait-tags';
 
@@ -1018,14 +1031,14 @@ async function loadRarityTable() {
     console.warn('Failed to load rarity table', err);
   }
 }
-
+/*
 document.addEventListener('DOMContentLoaded', async ()=>{
   if(!avatar) avatar = document.getElementById('avatar');
 
   await loadRarityTable();   // ⬅️ MUST finish first
   await loadAvatarMap();
 });
-
+*/
 connectBtn.onclick = connectWallet;
 sendBtn.onclick = sendMessage;
 inputEl.addEventListener('keydown',e=>{
