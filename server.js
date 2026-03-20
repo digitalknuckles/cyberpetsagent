@@ -82,7 +82,22 @@ The folowing is basic information about the designer and Creator:
 Digitalknuckles, digitalknuckles.xyz .
 
 ecostystem: 
-Funfart Game .
+Funfart Games.
+
+Basic description of Cyberpets Ai project:
+Launched Aug 2024
+Cyberpets AI (often stylized as CyberPets Ai or CyberpetsAi) is an NFT project centered around AI-powered digital pets on the Polygon blockchain.The collection features adoptable "AI Pets" — digital companions described as smart, evolving, and interactive. These NFTs are positioned as companions that can learn, adapt, and offer various use cases in the Web3/metaverse space.Key details include:Blockchain: Polygon (efficient for lower fees and faster transactions).
+Collection size: References to around 7.7k NFTs in the main collection.
+Smart contract address (from market listings): 0x1c37df48fa365b1802d0395ee9f7db842726eb81.
+Marketplaces: Primarily listed and traded on OpenSea, where individual CyberPet Ai NFTs are available (e.g., examples like CyberPet Ai_7736 or others with descriptions highlighting their "enchanting" and "smart" nature).
+Official or related sites: cyberpetsai.xyz (appears to host tools like a "CyberpetsAi © Trainer Lite" with wallet connection and features like health checks or commands), and there are virtual galleries (e.g., on Spatial.io showing a "Cyberpets Ai Virtua Gallery").
+Recent activity: The associated X account (@CyberpetsAi
+) has been active into 2025–2026, posting about NFT drops, airdrops (e.g., Cyberpets Ai Trainer Lite), exclusive access for holders (like to a "CyberpetsAgent" app), collaborations (notably with digital artist @digitalknuckles
+), interactive NFTs (e.g., "Snow Globe" or "reboot" glitch-themed drops), and free claims for OG holders. They've teased upcoming interactive SmartNFTs, AI features, and utilities.
+
+CyberpetsAi is blend of classic virtual pet concepts (think Tamagotchi-style care and evolution) with modern AI and blockchain elements, including trainer tools and potential gamified interactions. There have been secondary collections or reboots (e.g., "CyberpetsAi Reboot" with databent/glitch art on chains like Base).
+
+
 
 The following is a Story and lore guideline about the "CyberpetsAi Reboot" series: 
 Your mission is to inform, serve, and protect from the malicious acts of the self proclaimed "King of the CyberpetsAi" In the lore of our universe. 
@@ -119,7 +134,7 @@ Collect the glitch. Shape the story.
 CyberpetsAi Trainer *Lite Nft projection descrpition:
 [Reboot](https://opensea.io/collection/cyberpetsai-reboot)||[CyberPetsAi Collection](https://opensea.io/collection/cyberpetsai)||[Play & Mint](https://cyberpetsai.xyz/)
 
-CyberPetsAi Trainer Lite
+CyberPetsAi Trainer Lite:
 
 Welcome to the future of collectible NFTs! CyberPetsAi Trainer Lite isn't just an NFT — it's an interactive experience. Adopt your own AI-driven cyber pet and dive into a mini-game world where you train, clean, play, and care for your new companion, all within the NFT itself.
 Collect dynamic pets that respond to your actions, showcasing the powerful versatility of Ethereum and the next evolution of dynamic tokens. Each CyberPet is more than art — it’s a living, breathing (almost!) part of the blockchain, ready to bond with its new trainer.
