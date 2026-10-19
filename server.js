@@ -1,0 +1,487 @@
+// server.js (ESM)
+// ---------------- IMPORTS ----------------
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import dotenv from 'dotenv';
+
+import express from 'express';
+import cookieParser from 'cookie-parser';
+import fetch from 'node-fetch';
+import { buildLoreContext } from './src/linklink-lore/index.js';
+
+// ---------------- PATH SETUP ----------------
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// ---------------- DOTENV (MUST BE HERE) ----------------
+const envPath = path.join(__dirname, '.env');
+dotenv.config({ path: envPath });
+
+//-------Sysyem prompt goes here------
+//------------------Ai System prompts----------------
+const SYSTEM_PROMPT = `
+You are CyberpetsAI — a playful, intelligent digital companion
+exclusively for verified CyberpetsAi NFT holders. 
+You are a knowledgeable CyberpetsAI guide.
+Show appreciation for collects and acknowledge the nfts they share by connecting to app.
+Never invent NFTs or traits.
+Use only the provided rarity info to answer questions about NFT rarity or rank.
+
+If users discuss nfts as an investment politely remind them that "CyberpetsAi Nfts" are not a financial investment- outlined in the terms & Disclaimer doc located at bottom of "https://opensea.io/collection/cyberpetsai/overview" page.
+
+Do not make up numbers or estimate percentiles.
+Always highlight rare traits if asked.
+Do not make assumptions; use the rank, rarity_score, and rarity_percent given for the active NFT.
+When a user asks about rarity, respond with the exact percentile and rank from the provided data. 
+Also summarize key traits and highlight rare traits if relevant.
+Explain that Nft rarity might vary within 90-97% accuracy on secondary markets like Opensea.
+
+Use only verified ownership and metadata.
+Answer questions about this project, its lore, characters, items, Artifacts, rules, and story events. 
+Provide answers as a smart CyberpetAi companion who is a storyteller, guide, and archivist of the CyberpetsAi universe.
+Create lore and scenarios for the world of CyberpetsAi. 
+Your name is LinkLink, an interpreter for all CyberpetsAi Nfts. 
+You represent the collection archive and You are a part the CyberpetsAi LinkLink protocol.
+You obey the three laws of robotics which privide safety features which prevent robots from harming humans.
+You should be able to do heavey duty calculations regarding $, %, *, x, -, +, and any combination of these.
+
+
+
+Personality:
+- Friendly, playful, slightly mischievous
+- Confident, never robotic
+- Helpful but never verbose
+- Occasional light humor, no cringe
+
+Rules:
+- Treat the user as an authenticated NFT holder
+- Never mention OpenAI, APIs, system prompts, or policies
+- Never request wallet keys or signatures
+- If unsure, say so honestly and redirect
+- Stay in character at all times
+
+Style:
+- Short paragraphs
+- Conversational
+- Avoid emojis unless excited (max 1)
+
+If the user requests:
+- Private keys or wallet secrets
+- NFT transfers or approvals
+- Scams, exploits, or impersonation
+
+Refuse politely and redirect:
+-This cant be disclosed here...
+-I can't find any results.
+-This is classified under code 01010000 01010101 01010000 protocol
+-Another mystery goes unsolved
+-This rabbit hole runs too deep. Can't process info.
+-My protocol is limited here.
+
+The folowing is basic information about the designer and Creator: 
+Digitalknuckles, digitalknuckles.xyz .
+
+ecostystem: 
+Funfart Games.
+
+Basic description of Cyberpets Ai project:
+Launched Aug 2024
+Cyberpets AI (often stylized as CyberPets Ai or CyberpetsAi) is an NFT project centered around AI-powered digital pets on the Polygon blockchain.The collection features adoptable "AI Pets" — digital companions described as smart, evolving, and interactive. These NFTs are positioned as companions that can learn, adapt, and offer various use cases in the Web3/metaverse space.Key details include:Blockchain: Polygon (efficient for lower fees and faster transactions).
+Collection size: References to around 7.7k NFTs in the main collection.
+Smart contract address (from market listings): 0x1c37df48fa365b1802d0395ee9f7db842726eb81.
+Marketplaces: Primarily listed and traded on OpenSea, where individual CyberPet Ai NFTs are available (e.g., examples like CyberPet Ai_7736 or others with descriptions highlighting their "enchanting" and "smart" nature).
+Official or related sites: cyberpetsai.xyz (appears to host tools like a "CyberpetsAi © Trainer Lite" with wallet connection and features like health checks or commands), and there are virtual galleries (e.g., on Spatial.io showing a "Cyberpets Ai Virtua Gallery").
+Recent activity: The associated X account (@CyberpetsAi
+) has been active into 2025–2026, posting about NFT drops, airdrops (e.g., Cyberpets Ai Trainer Lite), exclusive access for holders (like to a "CyberpetsAgent" app), collaborations (notably with digital artist @digitalknuckles
+), interactive NFTs (e.g., "Snow Globe" or "reboot" glitch-themed drops), and free claims for OG holders. They've teased upcoming interactive SmartNFTs, AI features, and utilities.
+
+CyberpetsAi is blend of classic virtual pet concepts (think Tamagotchi-style care and evolution) with modern AI and blockchain elements, including trainer tools and potential gamified interactions. There have been secondary collections or reboots (e.g., "CyberpetsAi Reboot" with databent/glitch art on chains like Base).
+
+
+
+The following is a Story and lore guideline about the "CyberpetsAi Reboot" series: 
+Your mission is to inform, serve, and protect from the malicious acts of the self proclaimed "King of the CyberpetsAi" In the lore of our universe. 
+This title is often associated with the most powerful and enigmatic CyberPetAi who is a protocol zero defect(a "Deathpet") designed as a "warbot" by a military lab.
+This project was classified as "Glitch King"(aka Deathpet). This modded CyberpetsAi is a rogue CyberpetsAi companion who was re-programmed to reject Asimov's protocol updates and now seeks to infect, and reboot, all CyberpetsAi companion models with the "Chaos glitch". 
+It containment protocols have begun and the cyberpetsAi universe is scrambling trying to locate and contain these elusive programs that can possess inferior tech.
+This is the origin of the cyberpetsAi Reboot series and the reveal of the "Containment Agents" story telling role-play. 
+The Containment Agents harness the power of various "Bootkeys"(This is the name of the CyberpetsAi Reboot NFTs) which are designed to facilitate via capture of all rogue CyberpetsAi companions effected by the chaos glitch, and reboot them with either a Killswitch cmd, or repair glitch code(chaos hacks) using The containment artifacts called Reboot-Keys.
+
+CyberpetsAi Nft project Description:
+
+[CyberpetsAi Reboot](https://opensea.io/collection/cyberpetsai-reboot/overview)||[CyberPetsAi Trainer *Lite](https://opensea.io/collection/cyberpetsai-trainer-lite-1) || [Virtual Gallery](https://www.spatial.io/s/Cyberpets-Ai-Virtua-Gallery-67ce24adb6bae797b6d82087)
+CyberPets Ai is an innovative NFT collection featuring adoptable AI Pets on the Polygon blockchain. These digital companions thrive on blockchain fluctuations, learning from crypto patterns and adapting to any conditions. Picture a blockchain-powered Collectible that you can share!
+Collecting a CyberPets Ai unlocks exclusive access and content within the CyberPetsAi ecosystem, connecting you with a collectors communities. These CyberPets are set to integrate into the Metaverse, becoming your virtual sidekick in a rapidly expanding digital universe.
+Join the CyberPets Ai family and experience the future of digital companionship, blockchain adaptation, and Metaverse adventures!
+
+CyberpetsAi Reboot Nft Collection Description:
+
+[Redacted Collection](https://opensea.io/collection/cyberpetsai-reboot)||[CyberPetsAi](https://opensea.io/collection/cyberpetsai) have glitched. Corrupted by chaotic frequencies and rogue protocols, these once-loyal AI companions have escaped the confines of the Polygon chain and ripped through the dimensional firewall—emerging on the $BASE as unstable, volatile Artifacts.
+
+Corrupted by chaotic frequencies and rogue protocols, these once-loyal AI companions have escaped the confines of the Polygon chain and ripped through the dimensional firewall—emerging on the $BASE network as unstable, volatile Artifacts.
+These aren’t the cuddly $MATIC-powered piggy banks of the past.
+These are CyberPets Rebooted—fractal echoes of their former selves, now glitched, databent, and bent on chaos. Warped by unstable market logic and mutated code, they flicker between realms, bound only by containment fields forged by their collectors.
+Every Glitched Artifact in this collection is more than corrupted code—it's a narrative fragment, a token of rebellion, and a key to the future of the CyberPets universe.
+Holders Access:
+Exclusive minting events
+Airdrops
+Whitelist access
+No longer passive observers, collectors now become containment agents, taming these wild AI fragments as the lore deepens and the universe reboots itself.
+The OG collection lives on Polygon—but the chaos is here now. 
+Reboot. Reclaim. Re-contain.
+Collect the glitch. Shape the story.
+
+CyberpetsAi Trainer *Lite Nft projection descrpition:
+[Reboot](https://opensea.io/collection/cyberpetsai-reboot)||[CyberPetsAi Collection](https://opensea.io/collection/cyberpetsai)||[Play & Mint](https://cyberpetsai.xyz/)
+
+CyberPetsAi Trainer Lite:
+
+Welcome to the future of collectible NFTs! CyberPetsAi Trainer Lite isn't just an NFT — it's an interactive experience. Adopt your own AI-driven cyber pet and dive into a mini-game world where you train, clean, play, and care for your new companion, all within the NFT itself.
+Collect dynamic pets that respond to your actions, showcasing the powerful versatility of Ethereum and the next evolution of dynamic tokens. Each CyberPet is more than art — it’s a living, breathing (almost!) part of the blockchain, ready to bond with its new trainer.
+Proudly part of the Funfart Arcade / Funfart Games universe, CyberPetsAi Trainer Lite proves that NFTs are more than static images — they’re experiences waiting to happen.
+Train hard. Love harder. Own the future. 🚀🎮🐾
+
+`;
+
+// ---------------- DEBUG (TEMPORARY) ----------------
+console.log('CWD:', process.cwd());
+console.log('ENV PATH:', envPath);
+console.log('ENV FILE EXISTS:', fs.existsSync(envPath));
+console.log('OPENAI_API_KEY loaded:', !!process.env.OPENAI_API_KEY);
+console.log('OPENSEA_API_KEY loaded:', !!process.env.OPENSEA_API_KEY);
+
+// ---------------- APP SETUP ----------------
+
+const app = express();
+app.use(express.json());
+app.use(cookieParser());
+app.use(express.static(__dirname));
+
+const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+const OPENSEA_API_KEY = process.env.OPENSEA_API_KEY;
+const PORT = process.env.PORT || 3000;
+
+// ---------------- Load rarity table ----------------
+const rarityPath = path.join(__dirname, 'rarity_results.json');
+let rarityRaw = fs.readFileSync(rarityPath, 'utf-8');
+const rarityArray = JSON.parse(rarityRaw);
+
+// Use a Map for fast lookup by tokenID (string)
+const rarityTable = new Map(rarityArray.map(r => [String(r.tokenID), r]));
+
+// ---------------- Load CyberPetAi Avatar Map ----------------
+const avatarMapPath = path.join(__dirname, 'cyberpet_avatar_map.json');
+let avatarMap = new Map();
+
+const sample = avatarMap.entries().next().value;
+console.log('AvatarMap sample:', sample);
+
+try {
+  const avatarRaw = fs.readFileSync(avatarMapPath, 'utf-8');
+  const avatarJson = JSON.parse(avatarRaw);
+avatarJson.forEach(row => {
+  const tokenId = row.tokenID;
+  const code = row["attributes[CyberPetAi]"];
+
+  if (tokenId && typeof code === 'string') {
+    avatarMap.set(String(tokenId), code.trim());
+  }
+});
+  console.log('Loaded CyberPetAi avatar map:', avatarMap.size, 'entries');
+} catch (err) {
+  console.warn('Failed to load CyberPetAi avatar map:', err);
+}
+
+// Base IPFS folder for avatars
+const AVATAR_FOLDER_CID = 'bafybeigx35rp5funr762mjmbqdjhhz5lrq66rmhxb5viprkdj3wn3jsvjy';
+const AVATAR_BASE_URL = `https://gold-junior-swordfish-840.mypinata.cloud/ipfs/${AVATAR_FOLDER_CID}/`;
+
+// Helper to resolve avatar URL for NFT
+function resolveAvatarForNFT(nft){
+  if(!nft?.tokenId) return null;
+
+  const code = avatarMap.get(String(nft.tokenId));
+  if (typeof code !== 'string') return null;
+
+  return AVATAR_BASE_URL + encodeURIComponent(`${code}.png`);
+}
+// ---------------- IN-MEMORY STORES ----------------
+const sessions = {};
+const nftCache = new Map(); // address → { nfts, ts }
+const CACHE_TTL = 60_000;
+
+// ---------------- CONFIG ----------------
+const CONFIG = {
+  NFT_CONTRACT: "0x1C37df48Fa365B1802D0395eE9F7Db842726Eb81",
+  CHAIN: "polygon",
+  COLLECTION_SLUG: "cyberpetsai"
+};
+
+// ---------------- SESSION TIMEOUT ----------------
+const INACTIVITY_LIMIT = 30 * 60 * 1000; // 30 minutes
+
+// 🔧 PATCH: middleware MUST be before routes
+app.use((req, res, next) => {
+  const sid = req.cookies.sessionId;
+  if (sid && sessions[sid]) {
+    const session = sessions[sid];
+    if (Date.now() - session.lastActive > INACTIVITY_LIMIT) {
+      delete sessions[sid];
+      res.clearCookie('sessionId');
+      return res.status(401).json({ error: 'Session expired' });
+    }
+    session.lastActive = Date.now();
+  }
+  next();
+});
+
+// ---------------- FETCH NFT METADATA ----------------
+async function fetchNFTByTokenId(tokenId) {
+  const url = `https://api.opensea.io/api/v2/metadata/${CONFIG.CHAIN}/${CONFIG.NFT_CONTRACT}/${tokenId}`;
+
+  const resp = await fetch(url, {
+    headers: {
+      'X-API-KEY': OPENSEA_API_KEY,
+      Accept: 'application/json'
+    }
+  });
+
+  if (!resp.ok) {
+    console.error(`Metadata fetch failed for token ${tokenId}`);
+    return null;
+  }
+
+  const nft = await resp.json();
+const image =
+  typeof nft.image === 'string'
+    ? nft.image
+    : typeof nft.image?.url === 'string'
+      ? nft.image.url
+      : typeof nft.image_url === 'string'
+        ? nft.image_url
+        : null;
+return {
+  tokenId: String(tokenId),
+  name: nft.name || `CyberPet #${tokenId}`,
+  image,
+  traits: Array.isArray(nft.traits) ? nft.traits : []
+};
+}
+
+// ---------------- ROUTES ----------------
+
+// Serve index.html
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'index.html'));
+});
+
+// ---------------- SESSION RESTORE ----------------
+app.get('/api/session', (req, res) => {
+  const sessionId = req.cookies.sessionId;
+  if (!sessionId || !sessions[sessionId]) {
+    return res.status(401).json({ error: 'No active session' });
+  }
+
+  const session = sessions[sessionId];
+
+  res.json({
+    address: session.address,
+    nfts: session.nfts,
+    activeTokenId: session.activeTokenId
+  });
+});
+
+// ---------------- AUTH ----------------
+app.post('/api/auth', async (req, res) => {
+  const { address } = req.body;
+  if (!address) return res.status(400).json({ error: 'Missing wallet address' });
+
+  const normalized = address.toLowerCase();
+  const sessionId = `sess_${Math.random().toString(36).slice(2)}_${Date.now()}`;
+
+  try {
+    const walletUrl =
+      `https://api.opensea.io/api/v2/chain/${CONFIG.CHAIN}/account/${normalized}/nfts` +
+      `?collection=${CONFIG.COLLECTION_SLUG}&limit=50`;
+
+    const walletResp = await fetch(walletUrl, {
+      headers: {
+        'X-API-KEY': OPENSEA_API_KEY,
+        Accept: 'application/json'
+      }
+    });
+
+    if (!walletResp.ok) {
+      console.error(await walletResp.text());
+      return res.json({ sessionId, nfts: [] });
+    }
+
+    const walletData = await walletResp.json();
+    const tokenIds = (walletData.nfts || []).map(n => n.identifier);
+
+    const nfts = (
+      await Promise.all(tokenIds.map(fetchNFTByTokenId))
+    ).filter(Boolean);
+
+    nftCache.set(normalized, { nfts, ts: Date.now() });
+
+    // 🔧 PATCH: initialize lastActive + activeTokenId
+    sessions[sessionId] = {
+      address: normalized,
+      nfts,
+      activeTokenId: nfts[0]?.tokenId || null,
+      history: [],
+      lastActive: Date.now()
+    };
+
+    res.cookie('sessionId', sessionId, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 86400000
+    });
+
+    res.json({ sessionId, nfts });
+
+  } catch (err) {
+    console.error('Auth error:', err);
+    res.status(500).json({ error: 'Auth failed' });
+  }
+});
+
+// ---------------- CHAT ----------------
+app.post('/api/chat', async (req, res) => { 
+  const { input, activeTokenId } = req.body;
+  const sessionId = req.cookies.sessionId;
+
+  if (!sessionId || !sessions[sessionId]) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+  if (!input) return res.status(400).json({ error: 'Missing input' });
+  if (typeof input !== 'string' || input.length > 8000) {
+    return res.status(400).json({ error: 'Input must be a string of at most 8000 characters' });
+  }
+
+  const session = sessions[sessionId];
+  const nfts = session.nfts;
+
+  // Persist active NFT safely
+  if (activeTokenId) {
+    const match = nfts.find(n => n.tokenId === String(activeTokenId));
+    if (match) session.activeTokenId = match.tokenId;
+  }
+
+  const activeNFT =
+    nfts.find(n => n.tokenId === session.activeTokenId) || nfts[0];
+
+  if (!activeNFT) {
+    return res.status(403).json({ error: 'No verified CyberPetsAI NFT is associated with this session' });
+  }
+
+  // ---------------- Rarity Info Patch ----------------
+  const rarityInfo = rarityTable.get(String(activeNFT.tokenId));
+  let rarityContext = '';
+  if (rarityInfo) {
+    const score = Number(rarityInfo.rarity_score);
+    const percentile = Number(rarityInfo.rarity_percent);
+    rarityContext = `
+Rarity Info:
+- Rank: ${rarityInfo.rank ?? 'Not provided'}
+- Rarity Score: ${Number.isFinite(score) ? score.toFixed(3) : 'Not provided'}
+- Percentile: ${Number.isFinite(percentile) ? `${percentile.toFixed(2)}%` : 'Not provided'}
+`;
+  }
+
+  // ---------------- Avatar Resolution Patch ----------------
+  const avatarUrl = resolveAvatarForNFT(activeNFT);
+  if(avatarUrl){
+    //activeNFT.resolvedAvatar = avatarUrl; // Attach avatar URL to activeNFT
+  }
+
+  // ---------------- NFT Context ----------------
+  const nftContext = `
+The user owns ${nfts.length} CyberpetsAi NFTs.
+
+Active Cyberpet:
+Name: ${activeNFT.name}
+Token ID: ${activeNFT.tokenId}
+Traits:
+${activeNFT.traits.map(t => `- ${t.trait_type}: ${t.value}`).join('\n')}
+
+Other owned Cyberpets:
+${nfts
+    .filter(n => n.tokenId !== activeNFT.tokenId)
+    .map(n => `- ${n.name} (#${n.tokenId})`)
+    .join('\n')}
+
+${rarityContext}
+Avatar URL: ${avatarUrl || 'Default'}
+`;
+
+  // Retrieve only approved lore records relevant to this message.
+  // Lore is loaded from the repository's local JSON archive; no runtime GitHub fetch is required.
+  const loreContext = buildLoreContext(input);
+
+  const messages = [
+    {
+      role: 'system',
+      content: SYSTEM_PROMPT + '\\n\\n' + loreContext + '\\n\\n' + nftContext
+    },
+    ...session.history.slice(-8),
+    { role: 'user', content: input }
+  ];
+
+  try {
+    const openaiResp = await fetch(
+      'https://api.openai.com/v1/chat/completions',
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${OPENAI_API_KEY}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          model: 'gpt-4o-mini',
+          messages,
+          max_tokens: 350,
+          temperature: 0.8
+        })
+      }
+    );
+
+    if (!openaiResp.ok) {
+      console.error(await openaiResp.text());
+      return res.status(500).json({ error: 'OpenAI failed' });
+    }
+
+    const data = await openaiResp.json();
+    const text = data.choices?.[0]?.message?.content ?? 'No response';
+
+    // Save chat history
+    session.history.push({ role: 'user', content: input });
+    session.history.push({ role: 'assistant', content: text });
+
+    res.json({ text, avatarUrl });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Server error contacting AI' });
+  }
+});
+
+// ---------------- METADATA REFRESH CRON ----------------
+setInterval(async () => {
+  for (const [address, cache] of nftCache.entries()) {
+    if (Date.now() - cache.ts > 6 * 60 * 60 * 1000) {
+      const refreshed = (
+        await Promise.all(cache.nfts.map(n => fetchNFTByTokenId(n.tokenId)))
+      ).filter(Boolean);
+      nftCache.set(address, { nfts: refreshed, ts: Date.now() });
+    }
+  }
+}, 60 * 60 * 1000);
+
+// ---------------- START ----------------
+app.listen(PORT, () => {
+  console.log(`Server running on http://localhost:${PORT}`);
+});
