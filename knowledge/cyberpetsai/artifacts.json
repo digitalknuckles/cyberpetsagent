@@ -1,0 +1,40 @@
+[
+  {
+    "id": "artifact.bootkeys",
+    "category": "artifact",
+    "title": "Bootkeys",
+    "version": "1.0.0",
+    "status": "approved",
+    "tags": [
+      "Bootkeys",
+      "Reboot NFTs",
+      "containment",
+      "capture"
+    ],
+    "content": "Bootkeys is the name given to CyberPetsAI Reboot NFTs in the supplied lore. They are associated with capturing rogue CyberPetsAI companions affected by the Chaos Glitch.",
+    "canon": true,
+    "aliases": [
+      "Bootkey"
+    ]
+  },
+  {
+    "id": "artifact.reboot-keys",
+    "category": "artifact",
+    "title": "Reboot-Keys",
+    "version": "1.0.0",
+    "status": "approved",
+    "tags": [
+      "Reboot-Keys",
+      "containment artifacts",
+      "killswitch",
+      "repair glitch code",
+      "chaos hacks"
+    ],
+    "content": "Reboot-Keys are containment artifacts used by Containment Agents to apply a killswitch command or repair a corrupted companion using repair glitch code, also described as chaos hacks.",
+    "canon": true,
+    "aliases": [
+      "Reboot Key",
+      "Reboot Keys"
+    ]
+  }
+]

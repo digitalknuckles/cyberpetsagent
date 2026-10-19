@@ -1,0 +1,60 @@
+[
+  {
+    "id": "collection.original",
+    "category": "collection",
+    "title": "Original CyberPetsAI collection",
+    "version": "1.0.0",
+    "status": "approved",
+    "tags": [
+      "original collection",
+      "Polygon",
+      "OpenSea",
+      "CyberPetsAI"
+    ],
+    "content": "The project materials describe the original CyberPetsAI collection as living on Polygon. The referenced OpenSea collection is https://opensea.io/collection/cyberpetsai. Collection-level descriptions should not be used to infer a specific NFT's traits or rarity.",
+    "canon": true,
+    "aliases": [
+      "OG collection",
+      "main collection"
+    ]
+  },
+  {
+    "id": "collection.reboot",
+    "category": "collection",
+    "title": "CyberPetsAI Reboot collection",
+    "version": "1.0.0",
+    "status": "approved",
+    "tags": [
+      "Reboot",
+      "Base",
+      "Bootkeys",
+      "Glitched Artifacts"
+    ],
+    "content": "The CyberPetsAI Reboot collection represents glitched and corrupted companions in the project's narrative. The project materials associate Reboot NFTs with Bootkeys and containment-agent role-play. Referenced collection: https://opensea.io/collection/cyberpetsai-reboot/overview.",
+    "canon": true,
+    "aliases": [
+      "Reboot series"
+    ]
+  },
+  {
+    "id": "collection.trainer-lite",
+    "category": "collection",
+    "title": "CyberPetsAI Trainer Lite",
+    "version": "1.0.0",
+    "status": "approved",
+    "tags": [
+      "Trainer Lite",
+      "Funfart Arcade",
+      "mini-game",
+      "train",
+      "clean",
+      "play",
+      "care"
+    ],
+    "content": "The project materials describe CyberPetsAI Trainer Lite as an interactive NFT experience where holders can train, clean, play with, and care for a digital pet. Referenced collection: https://opensea.io/collection/cyberpetsai-trainer-lite-1.",
+    "canon": true,
+    "aliases": [
+      "Trainer Lite"
+    ]
+  }
+]

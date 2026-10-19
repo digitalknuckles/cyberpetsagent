@@ -1,0 +1,13 @@
+{
+  "schemaVersion": "1.0.0",
+  "loreRelease": "1.0.0",
+  "status": "approved",
+  "records": [
+    "universe.json",
+    "characters.json",
+    "collections.json",
+    "artifacts.json",
+    "missions.json",
+    "timeline.json"
+  ]
+}

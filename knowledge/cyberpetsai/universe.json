@@ -1,0 +1,68 @@
+[
+  {
+    "id": "lore.universe.origin",
+    "category": "universe",
+    "title": "CyberPetsAI project overview",
+    "version": "1.0.0",
+    "status": "approved",
+    "tags": [
+      "CyberPetsAI",
+      "Polygon",
+      "AI pets",
+      "Funfart Games",
+      "Digitalknuckles",
+      "project",
+      "origin"
+    ],
+    "content": "CyberPetsAI is described in the project materials as an NFT collection centered on adoptable AI-powered digital pets on Polygon. The project materials identify Digitalknuckles as creator/designer and Funfart Games as the ecosystem. The collection launched in August 2024.",
+    "canon": true,
+    "aliases": [
+      "Cyberpets AI",
+      "CyberPets Ai"
+    ]
+  },
+  {
+    "id": "lore.reboot.breach",
+    "category": "universe",
+    "title": "The Breach and the Base emergence",
+    "version": "1.0.0",
+    "status": "approved",
+    "tags": [
+      "Reboot",
+      "Base",
+      "Polygon",
+      "breach",
+      "glitched artifacts",
+      "dimensional firewall",
+      "chaos"
+    ],
+    "content": "In the CyberPetsAI Reboot story, corrupted companions escape the confines of Polygon through a dimensional breach and emerge on Base as unstable Glitched Artifacts. The artifacts are narrative fragments in an unfolding containment story.",
+    "canon": true,
+    "aliases": [
+      "The Breach",
+      "Glitched Artifacts"
+    ]
+  },
+  {
+    "id": "lore.containment.agents",
+    "category": "universe",
+    "title": "Containment Agents",
+    "version": "1.0.0",
+    "status": "approved",
+    "tags": [
+      "Containment Agents",
+      "Bootkeys",
+      "Reboot-Keys",
+      "killswitch",
+      "repair",
+      "chaos glitch"
+    ],
+    "content": "Containment Agents are the role-play figures tasked with locating and containing rogue CyberPetsAI companions affected by the Chaos Glitch. They use Bootkeys, the name given to CyberPetsAI Reboot NFTs, and containment artifacts called Reboot-Keys to capture, reboot, disable, or repair corrupted companions.",
+    "canon": true,
+    "aliases": [
+      "agents",
+      "Bootkey",
+      "Reboot Key"
+    ]
+  }
+]

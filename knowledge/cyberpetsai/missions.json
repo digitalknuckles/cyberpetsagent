@@ -1,0 +1,23 @@
+[
+  {
+    "id": "mission.containment-basics",
+    "category": "mission",
+    "title": "Containment mission framework",
+    "version": "1.0.0",
+    "status": "approved",
+    "tags": [
+      "mission",
+      "containment",
+      "agent role-play",
+      "Chaos Glitch",
+      "Bootkeys",
+      "Reboot-Keys"
+    ],
+    "content": "A creative role-play mission can ask a Containment Agent to identify signs of a Chaos Glitch, locate a rogue companion, choose a Bootkey, and decide whether a Reboot-Key should disable or repair the corruption. This is a story framework, not a record of an actual completed mission or an on-chain action.",
+    "canon": false,
+    "aliases": [
+      "containment mission",
+      "agent mission"
+    ]
+  }
+]

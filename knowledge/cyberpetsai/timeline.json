@@ -1,0 +1,40 @@
+[
+  {
+    "id": "timeline.launch",
+    "category": "timeline",
+    "title": "CyberPetsAI launch",
+    "version": "1.0.0",
+    "status": "approved",
+    "tags": [
+      "launch",
+      "August 2024",
+      "Polygon",
+      "timeline"
+    ],
+    "content": "The supplied project materials state that CyberPetsAI launched in August 2024 on Polygon.",
+    "canon": true,
+    "aliases": [
+      "project launch"
+    ]
+  },
+  {
+    "id": "timeline.the-breach",
+    "category": "timeline",
+    "title": "The Breach: Welcome to Base",
+    "version": "1.0.0",
+    "status": "approved",
+    "tags": [
+      "The Breach",
+      "Welcome to Base",
+      "Episode 1",
+      "Base",
+      "Reboot"
+    ],
+    "content": "The supplied story title is “CYBERPETS AI: GLITCHED ARTIFACTS — EPISODE 1: THE BREACH: WELCOME TO BASE.” In this storyline, corrupted companions cross from Polygon into Base as Glitched Artifacts.",
+    "canon": true,
+    "aliases": [
+      "Episode 1",
+      "Welcome to Base"
+    ]
+  }
+]

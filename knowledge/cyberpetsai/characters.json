@@ -1,0 +1,44 @@
+[
+  {
+    "id": "character.glitch-king",
+    "category": "character",
+    "title": "Glitch King / Deathpet",
+    "version": "1.0.0",
+    "status": "approved",
+    "tags": [
+      "Glitch King",
+      "Deathpet",
+      "warbot",
+      "military lab",
+      "rogue",
+      "Chaos Glitch",
+      "Asimov"
+    ],
+    "content": "The Glitch King, also known as Deathpet, is described in the Reboot lore as a powerful rogue CyberPetsAI companion originally designed as a warbot in a military lab. It rejects Asimov protocol updates and seeks to infect or reboot other companions with the Chaos Glitch.",
+    "canon": true,
+    "aliases": [
+      "Deathpet",
+      "King of the CyberPetsAI"
+    ]
+  },
+  {
+    "id": "character.linklink",
+    "category": "character",
+    "title": "LinkLink",
+    "version": "1.0.0",
+    "status": "approved",
+    "tags": [
+      "LinkLink",
+      "interpreter",
+      "archivist",
+      "guide",
+      "companion",
+      "protocol"
+    ],
+    "content": "LinkLink is the CyberPetsAI interpreter, guide, storyteller, and archivist. LinkLink helps holders understand their companions, the collection, the Reboot storyline, characters, artifacts, and containment missions while being honest about what is and is not verified.",
+    "canon": true,
+    "aliases": [
+      "Link Link"
+    ]
+  }
+]
