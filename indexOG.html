@@ -467,7 +467,39 @@ function escapeHtml(u=''){
     .replaceAll('&','&amp;')
     .replaceAll('<','&lt;')
     .replaceAll('>','&gt;')
+    .replaceAll('\"','&quot;')
+    .replaceAll("'", '&#39;')
     .replaceAll('\n','<br/>');
+}
+
+function normalizeImageUrl(value){
+  if(typeof value !== 'string' || !value.trim()) return DEFAULT_PFP;
+  const raw = value.trim();
+  if(raw.startsWith('ipfs://')) {
+    const path = raw.slice('ipfs://'.length).replace(/^ipfs\//, '');
+    return `https://gold-junior-swordfish-840.mypinata.cloud/ipfs/${path.split('/').map(encodeURIComponent).join('/')}`;
+  }
+  try {
+    const url = new URL(raw, window.location.href);
+    if(url.protocol === 'https:' || url.protocol === 'http:') return url.href;
+  } catch {}
+  return DEFAULT_PFP;
+}
+
+async function readJsonResponse(response, label){
+  const contentType = response.headers.get('content-type') || '';
+  let data = null;
+  if(contentType.includes('application/json')) {
+    try { data = await response.json(); } catch {}
+  } else {
+    try { await response.text(); } catch {}
+  }
+  if(!response.ok) {
+    const message = typeof data?.error === 'string' ? data.error : `${label} failed (HTTP ${response.status}).`;
+    throw new Error(message);
+  }
+  if(!data || typeof data !== 'object') throw new Error(`${label} returned an invalid response.`);
+  return data;
 }
 
 function bindAvatarTo(el){
@@ -493,7 +525,7 @@ function updateFloatingAvatar(tokenId){
 
   avatar.innerHTML = '';
 
-  const url = resolveAvatarUrlFromToken(tokenId) || DEFAULT_PFP;
+  const url = normalizeImageUrl(resolveAvatarUrlFromToken(tokenId) || DEFAULT_PFP);
 
   // Remove any previous image
   avatar.innerHTML = '';
@@ -515,11 +547,23 @@ function updateFloatingAvatar(tokenId){
 
 
 //---------push----------
-function push(who, text){
+function push(who, content, options = {}){
   const m = document.createElement('div');
   m.className = 'msg ' + (who === 'User' ? 'user' : 'ai');
 
-  m.innerHTML = `<div class="meta">${who}</div>${text}`;
+  const meta = document.createElement('div');
+  meta.className = 'meta';
+  meta.textContent = String(who);
+
+  const body = document.createElement('div');
+  body.className = 'msg-content';
+  body.style.whiteSpace = 'pre-wrap';
+  body.style.overflowWrap = 'anywhere';
+  // HTML is allowed only for fixed, locally-authored templates. API/user text uses textContent.
+  if(options.html === true) body.innerHTML = String(content ?? '');
+  else body.textContent = String(content ?? '');
+
+  m.append(meta, body);
   messages.appendChild(m);
   scrollBottom();
 
@@ -531,9 +575,7 @@ function push(who, text){
 
 // 🔒 PFP SAFETY LOCK
 const setPfp = (url) => {
-  if (typeof url === 'string') {
-    pfpImg.src = url;
-  }
+  if (pfpImg) pfpImg.src = normalizeImageUrl(url);
 };
 
 function incrementNFTStatus(){
@@ -610,7 +652,9 @@ function aiReactToNFTSwitch(nft){
   if(!nft) return;
 
   const rarityData = rarityTable.get(nft.tokenId.toString());
-  const rarityText = rarityData ? `Rarity: ${rarityData.rarity_percent.toFixed(1)}% (Rank #${rarityData.rank})` : '';
+  const rarityText = rarityData && Number.isFinite(Number(rarityData.rarity_percent)) && Number.isFinite(Number(rarityData.rank))
+    ? `Rarity: ${Number(rarityData.rarity_percent).toFixed(1)}% (Rank #${rarityData.rank})`
+    : '';
 
   const traitSummary = (nft.traits || [])
     .slice(0,3)
@@ -624,16 +668,16 @@ function aiReactToNFTSwitch(nft){
     rarityText
   ].filter(Boolean).join('<br/>');
 
-  push('AI', lines);
+  push('AI', lines, { html: true });
 }
 
 function resolveNFTImage(nft){
   if(!nft?.image) return DEFAULT_PFP;
 
-  if(typeof nft.image === 'string') return nft.image;
+  if(typeof nft.image === 'string') return normalizeImageUrl(nft.image);
 
   if(nft.image.cid && nft.image.file){
-    return `https://gold-junior-swordfish-840.mypinata.cloud/ipfs/${nft.image.cid}/${encodeURIComponent(nft.image.file)}`;
+    return normalizeImageUrl(`https://gold-junior-swordfish-840.mypinata.cloud/ipfs/${nft.image.cid}/${encodeURIComponent(nft.image.file)}`);
   }
 
   return DEFAULT_PFP;
@@ -641,9 +685,9 @@ function resolveNFTImage(nft){
 
 /* ---------------- NFT SELECTOR -------------------------------------------------rarity call--------------------------- */
 function renderNFTSelector(nfts, activeTokenId=null){
-  if(!Array.isArray(nfts) || !nfts.length) return;
   if(!nftSelectorEl) return;
-  nftSelectorEl.innerHTML = '';
+  nftSelectorEl.replaceChildren();
+  if(!Array.isArray(nfts) || !nfts.length) return;
 
   nfts.forEach(nft=>{
   const rarity = getRarityFromTable(nft.tokenId);
@@ -652,15 +696,11 @@ function renderNFTSelector(nfts, activeTokenId=null){
   wrapper.className = 'nft-item';
 
   const img = document.createElement('img');
-  img.src =
-  typeof nft.image === 'string'
-    ? nft.image
-    : nft.image?.cid && nft.image?.file
-      ? `https://gold-junior-swordfish-840.mypinata.cloud/ipfs/${nft.image.cid}/${encodeURIComponent(nft.image.file)}`
-      : DEFAULT_PFP;
+  img.src = resolveNFTImage(nft);
   img.title = nft.name;
   img.className = 'nft-thumb';
-  if(activeTokenId && nft.tokenId === activeTokenId){
+  if(activeTokenId != null && String(nft.tokenId) === String(activeTokenId)){
+    wrapper.classList.add('selected');
     img.classList.add('selected');
   }
   img.onclick = ()=>selectNFT(nft);
@@ -699,24 +739,37 @@ tags.className = 'trait-tags';
   nftSelectorEl.appendChild(wrapper);
 });
 
-  if(!activeNFT && nfts[0]) selectNFT(nfts[0], true);
+  const preferred = activeTokenId == null
+    ? null
+    : nfts.find(item => String(item.tokenId) === String(activeTokenId));
+  const currentStillOwned = activeNFT && nfts.some(item => String(item.tokenId) === String(activeNFT.tokenId));
+  if(preferred) selectNFT(preferred, true);
+  else if(!currentStillOwned && nfts[0]) selectNFT(nfts[0], true);
 
   appendCollectNewButton(nftSelectorEl);
 }
 
 
 function selectNFT(nft, silent = false){
-  if(activeNFT?.tokenId === nft.tokenId) return;
+  if(!nft || nft.tokenId == null) return;
+  if(activeNFT && String(activeNFT.tokenId) === String(nft.tokenId)) {
+    // Keep the UI highlight synchronized even if the same NFT is selected again.
+    if(nftSelectorEl) [...nftSelectorEl.querySelectorAll('.nft-item')].forEach((item, index) => {
+      const selected = String(ownedNFTs[index]?.tokenId) === String(nft.tokenId);
+      item.classList.toggle('selected', selected);
+      item.querySelector('.nft-thumb')?.classList.toggle('selected', selected);
+    });
+    return;
+  }
   activeNFT = nft;
   CONFIG.NFT_TOKEN_ID = nft.tokenId;
+  sendBtn.disabled = !(hasNFTAccess && activeNFT);
   updateFloatingAvatar(nft?.tokenId);
 
   // ✅ replace placeholder ONLY after verified NFT selection
-  if (pfpImg && nft?.image) {
-  pfpImg.src = resolveNFTImage(nft);
-  }
+  if (pfpImg) pfpImg.src = resolveNFTImage(nft);
 
-  localStorage.setItem('activeNFT', nft.tokenId);
+  try { localStorage.setItem('activeNFT', String(nft.tokenId)); } catch {}
 
   if(nftDropdown){
     nftDropdown.classList.add('hidden');
@@ -724,18 +777,18 @@ function selectNFT(nft, silent = false){
 
   // Highlight selected thumbnail
   if(nftSelectorEl){
-    [...nftSelectorEl.children].forEach(img=>{
-      img.classList.toggle(
-        'selected',
-        img.title === nft.name
-      );
+    [...nftSelectorEl.querySelectorAll('.nft-item')].forEach((item, index)=>{
+      const selected = String(ownedNFTs[index]?.tokenId) === String(nft.tokenId);
+      item.classList.toggle('selected', selected);
+      item.querySelector('.nft-thumb')?.classList.toggle('selected', selected);
     });
   }
 
   if(!silent){
     push(
       'System',
-      `Selected <b>${escapeHtml(nft.name)}</b> as your active Cyberpet 🐾`
+      `Selected <b>${escapeHtml(nft.name)}</b> as your active Cyberpet 🐾`,
+      { html: true }
     );
     aiReactToNFTSwitch(nft); // 🧠 AI reaction
   }
@@ -748,7 +801,9 @@ const AVATAR_BASE_CID =
 async function loadAvatarMap(){
   try{
     const r = await fetch('cyberpet_avatar_map.json');
+    if(!r.ok) throw new Error(`Avatar map request failed (HTTP ${r.status})`);
     const data = await r.json();
+    if(!Array.isArray(data)) throw new Error('Avatar map has an invalid format');
 
     data.forEach(row=>{
       if(row.tokenID && row["attributes[CyberPetAi]"]){
@@ -776,20 +831,27 @@ function resolveAvatarUrlFromToken(tokenId){
 }
 /* ---------------- WALLET ---------------- */
 async function connectWallet(){
-  if(!window.ethereum) return alert('No Ethereum wallet detected');
+  if(!window.ethereum) {
+    push('System', 'No compatible wallet detected. Install or enable MetaMask, then try again.');
+    return;
+  }
+  connectBtn.disabled = true;
+  try {
+    const accounts = await window.ethereum.request({ method:'eth_requestAccounts' });
+    if(!accounts?.length) return;
 
-  const accounts = await ethereum.request({ method:'eth_requestAccounts' });
-  if(!accounts.length) return;
-
-  web3Provider = new ethers.providers.Web3Provider(window.ethereum);
-  signer = web3Provider.getSigner();
-  userAddress = accounts[0].toLowerCase();
-
-  connectBtn.classList.remove('blink');
-  connectBtn.textContent =
-    `Connected: ${userAddress.slice(0,6)}...${userAddress.slice(-4)}`;
-
-  await authenticateAndFetchNFT();
+    web3Provider = new ethers.providers.Web3Provider(window.ethereum);
+    signer = web3Provider.getSigner();
+    userAddress = accounts[0].toLowerCase();
+    connectBtn.classList.remove('blink');
+    connectBtn.textContent = `Connected: ${userAddress.slice(0,6)}...${userAddress.slice(-4)}`;
+    await authenticateAndFetchNFT();
+  } catch(err) {
+    console.error('Wallet connection/authentication failed:', err);
+    push('System', `Could not connect wallet: ${escapeHtml(err?.message || 'Please try again.')}`, { html: true });
+  } finally {
+    connectBtn.disabled = false;
+  }
 }
 
 /* Silent restore */
@@ -819,7 +881,7 @@ async function authenticateAndFetchNFT(){
     credentials:'include'
   });
 
-  const data = await r.json();
+  const data = await readJsonResponse(r, 'Wallet authentication');
   handleNFTAuth(data);
 }
 
@@ -833,35 +895,38 @@ function handleNFTAuth(data){
 
       inputEl.disabled = true;
       sendBtn.disabled = true;
-
-        if (pfpImg) {
-        pfpImg.src = DEFAULT_PFP;
-      }
+      activeNFT = null;
+      CONFIG.NFT_TOKEN_ID = null;
+      if(nftSelectorEl) nftSelectorEl.replaceChildren();
+      try { localStorage.removeItem('activeNFT'); } catch {}
+      if (pfpImg) pfpImg.src = DEFAULT_PFP;
+      if (avatar) avatar.classList.remove('typing');
 
       push('System', `
         You need a <b>CyberpetsAi NFT</b> to continue.<br/><br/>
-        <a href="https://opensea.io/collection/cyberpetsai" target="_blank"
+        <a href="https://opensea.io/collection/cyberpetsai" target="_blank" rel="noopener noreferrer"
            style="display:inline-block;padding:10px 14px;border-radius:12px;
            background:linear-gradient(135deg,#06b6d4,#7c3aed);
            color:white;font-weight:700;text-decoration:none;">
            Go To NFTs
         </a>
-      `);
+      `, { html: true });
     }
     return;
   }
 
-  if(!hasNFTAccess){
-    hasNFTAccess = true;
-    authAnnounced = true;
+  hasNFTAccess = true;
+  authAnnounced = true;
+  inputEl.disabled = false;
+  sendBtn.disabled = !activeNFT;
 
-    inputEl.disabled = false;
-    sendBtn.disabled = false;
-
-    const storedToken = localStorage.getItem('activeNFT');
-    renderNFTSelector(ownedNFTs, storedToken || data.activeTokenId);
-
-    push('System', `Chat unlocked — ${ownedNFTs.length} Cyberpets verified 🐾`);
+  let storedToken = null;
+  try { storedToken = localStorage.getItem('activeNFT'); } catch {}
+  renderNFTSelector(ownedNFTs, storedToken || data.activeTokenId);
+  sendBtn.disabled = !(hasNFTAccess && activeNFT);
+  if(!messages.querySelector('[data-nft-unlocked]')) {
+    const notice = push('System', `Chat unlocked — ${ownedNFTs.length} Cyberpets verified 🐾`);
+    notice.dataset.nftUnlocked = 'true';
   }
 }
 
@@ -872,19 +937,22 @@ async function restoreSession(){
     const r = await fetch('/api/session',{ credentials:'include' });
     if(!r.ok) return;
 
-    const data = await r.json();
-    userAddress = data.address;
+    const data = await readJsonResponse(r, 'Session restore');
+    if(!data.address || !Array.isArray(data.nfts) || data.nfts.length === 0) return;
+    userAddress = String(data.address).toLowerCase();
     ownedNFTs = data.nfts || [];
 
     connectBtn.classList.remove('blink');
     connectBtn.textContent =
       `Connected: ${userAddress.slice(0,6)}...${userAddress.slice(-4)}`;
 
-    const storedToken = localStorage.getItem('activeNFT');
+    let storedToken = null;
+    try { storedToken = localStorage.getItem('activeNFT'); } catch {}
     renderNFTSelector(ownedNFTs, storedToken || data.activeTokenId);
 
+    hasNFTAccess = true;
     inputEl.disabled = false;
-    sendBtn.disabled = false;
+    sendBtn.disabled = !activeNFT;
 
     push('System','Session restored — welcome back 🐾');
   }catch{}
@@ -893,91 +961,45 @@ async function restoreSession(){
 /* ---------------- CHAT ---------------- */
 async function sendMessage(){
   const t=inputEl.value.trim();
-  if(!t) return;
+  if(!t || !hasNFTAccess || !activeNFT || sendBtn.disabled) return;
 
   updateFloatingAvatar(activeNFT?.tokenId);
 
-  push('User', escapeHtml(t));
+  push('User', t);
   inputEl.value='';
   sendBtn.disabled = true;
   if(avatar) avatar.classList.add('typing');
 
-  const p = push('AI', '<span class="loading-spinner"></span>');
+  const p = push('AI', '<span class="loading-spinner" aria-label="Thinking"></span>', { html: true });
 
   try{
-    let rarityData = null;
-    if(activeNFT){
-      rarityData = rarityTable.get(activeNFT.tokenId.toString());
-    }
-
     const r = await fetch(`${CONFIG.API_BASE}/api/chat`, {
       method: 'POST',
       headers: {'Content-Type':'application/json'},
       body: JSON.stringify({
         input: t,
-        activeTokenId: activeNFT?.tokenId,
-        rarity: rarityData || null
+        activeTokenId: activeNFT ? String(activeNFT.tokenId) : null
       }),
       credentials: 'include'
     });
 
-    const d = await r.json();
+    const d = await readJsonResponse(r, 'Chat request');
 
-    // ---------------- NEW: Swap PFP with avatar----------------
-  // this replaces the nft pfp upon Ai response
-/*let url = null;
+    // Avatar selection is managed locally from the verified active NFT.
 
-/*
-// 1️⃣ ONLY accept string avatarUrl from server
-if (typeof d?.avatarUrl === 'string') {
-  url = d.avatarUrl;
-}
-*/
-/*
-// 2️⃣ Deterministic token → avatar map
-if (!url && activeNFT?.tokenId) {
-  const resolved = resolveAvatarUrlFromToken(activeNFT.tokenId);
-  if (typeof resolved === 'string') {
-    url = resolved;
-  }
-}
 
-// 3️⃣ LAST resort: NFT image (string only)
-if (!url && typeof activeNFT?.image === 'string') {
-  url = activeNFT.image;
-}
-
-// 🚨 HARD FAIL GUARD
-if (typeof url !== 'string') {
-  console.warn('Avatar swap skipped — invalid url:', url);
-  return;
-}
-
-if (pfpImg && typeof pfpImg.src !== 'string') {
-  pfpImg.src = DEFAULT_PFP;
-}
-
-// ✅ Swap ONLY after validation
-pfpImg.style.opacity = '0';
-pfpImg.onload = () => {
-  pfpImg.style.opacity = '1';
-};
-pfpImg.onerror = () => {
-  console.warn('Avatar failed to load:', url);
-  pfpImg.style.opacity = '1'; // restore visibility
-};
-pfpImg.src = url;
-*/
-    // ---------------- END PATCH ----------------
-
-    p.innerHTML = `<div class="meta">AI</div>${escapeHtml(d.text || 'No response')}`;
+    const responseText = typeof d.text === 'string' ? d.text : 'No response';
+    const content = p.querySelector('.msg-content');
+    if(content) content.textContent = responseText;
     requestAnimationFrame(() => bindAvatarTo(p));
     incrementNFTStatus();
   } catch(err){
     console.error(err);
-    p.innerHTML = '<div class="meta">AI</div>Error contacting AI backend.';
+    const content = p.querySelector('.msg-content');
+    if(content) content.textContent = `Error: ${err?.message || 'Unable to contact the AI backend.'}`;
   } finally {
-    sendBtn.disabled = false;
+    sendBtn.disabled = !(hasNFTAccess && activeNFT);
+    inputEl.disabled = !hasNFTAccess;
     if(avatar) avatar.classList.remove('typing');
   }
 }
@@ -1022,8 +1044,12 @@ async function autoAuthIfNeeded(){
 async function loadRarityTable() {
   try {
     const r = await fetch('rarity_results.json');
+    if(!r.ok) throw new Error(`Rarity table request failed (HTTP ${r.status})`);
     const data = await r.json();
-    data.forEach(nft => rarityTable.set(nft.tokenID.toString(), nft));
+    if(!Array.isArray(data)) throw new Error('Rarity table has an invalid format');
+    data.forEach(nft => {
+      if(nft?.tokenID != null) rarityTable.set(String(nft.tokenID), nft);
+    });
       if (ownedNFTs.length) {
       renderNFTSelector(ownedNFTs, activeNFT?.tokenId);
     }
@@ -1041,6 +1067,44 @@ document.addEventListener('DOMContentLoaded', async ()=>{
 */
 connectBtn.onclick = connectWallet;
 sendBtn.onclick = sendMessage;
+
+function resetWalletState(message = 'Wallet account changed. Reconnect to verify NFT access.'){
+  userAddress = null;
+  signer = null;
+  web3Provider = null;
+  hasNFTAccess = false;
+  authAnnounced = false;
+  ownedNFTs = [];
+  activeNFT = null;
+  CONFIG.NFT_TOKEN_ID = null;
+  inputEl.disabled = true;
+  sendBtn.disabled = true;
+  connectBtn.classList.add('blink');
+  connectBtn.textContent = 'Connect Wallet';
+  if(nftSelectorEl) nftSelectorEl.replaceChildren();
+  if(pfpImg) pfpImg.src = DEFAULT_PFP;
+  if(avatar) avatar.classList.remove('typing');
+  try { localStorage.removeItem('activeNFT'); } catch {}
+  if(message) push('System', message);
+}
+
+if(window.ethereum?.on){
+  window.ethereum.on('accountsChanged', async (accounts) => {
+    resetWalletState(null);
+    if(Array.isArray(accounts) && accounts.length){
+      userAddress = String(accounts[0]).toLowerCase();
+      web3Provider = new ethers.providers.Web3Provider(window.ethereum);
+      signer = web3Provider.getSigner();
+      connectBtn.classList.remove('blink');
+      connectBtn.textContent = `Connected: ${userAddress.slice(0,6)}...${userAddress.slice(-4)}`;
+      try { await authenticateAndFetchNFT(); }
+      catch(err) { console.error('Re-authentication failed:', err); push('System', `Wallet re-authentication failed: ${escapeHtml(err?.message || 'Please reconnect.')}`, { html: true }); }
+    } else {
+      resetWalletState('Wallet disconnected. Connect again to continue.');
+    }
+  });
+  window.ethereum.on('chainChanged', () => window.location.reload());
+}
 inputEl.addEventListener('keydown',e=>{
   if(e.key==='Enter') sendMessage();
 });
