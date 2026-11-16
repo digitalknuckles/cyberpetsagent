@@ -387,6 +387,8 @@ main.chat-area{
     <div class="brand">Cyberpets AI</div>
     <div class="subtitle">NFT-gated assistant</div>
   </div>
+  <button id="adventureBtn" class="send" style="margin-left:6px" title="Open LinkLink Adventures">Adventure</button>
+  <button id="memoryBtn" class="send" style="margin-left:6px" title="Collector memory settings">Memory</button>
   <button id="connectBtn" class="send blink" style="margin-left:auto">Connect Wallet</button>
 </header>
 
@@ -401,6 +403,18 @@ main.chat-area{
 <div class="nft-status"><div id="nftStatusFill" class="nft-status-fill"></div></div>
 
 
+<section id="adventurePanel" class="hidden" style="padding:12px;max-height:75vh;overflow:auto;background:#101820;color:#e9f5ee;border:1px solid #2c6155;border-radius:12px;margin:8px;position:relative;z-index:5">
+ <h3 style="margin:4px 0">LinkLink Adventures <small style="font-weight:normal">· RPG Mode</small></h3>
+ <div style="display:flex;flex-wrap:wrap;gap:7px;align-items:center;margin-bottom:8px">
+  <select id="advList" aria-label="Saved adventures" style="max-width:180px"><option value="">New adventure</option></select>
+  <button id="advOpen">Load / Start</button><button id="advCheckpoint">Checkpoint</button><button id="advRestore">Restore</button>
+  <label><input type="checkbox" id="advSave" checked> Save progress</label><button id="advClose">Companion Chat</button>
+ </div>
+ <div id="advStatus" style="font-size:12px;color:#a9c7b9">Connect a wallet to begin.</div>
+ <pre id="advState" style="white-space:pre-wrap;font-size:12px;max-height:110px;overflow:auto"></pre>
+ <div id="advStory" role="log" aria-live="polite" style="white-space:pre-wrap;max-height:35vh;overflow:auto;padding:10px;background:#192b31;border-radius:8px;margin:8px 0"></div>
+ <div style="display:flex;gap:6px"><input id="advAction" maxlength="1200" placeholder="What do you do?" style="flex:1;min-width:0"><button id="advSend">Act</button></div>
+ </section>
 <main class="chat-area">
   <div class="messages" id="messages"></div>
 </main>
@@ -422,7 +436,7 @@ const CONFIG = {
   NFT_CONTRACT: "0x1C37df48Fa365B1802D0395eE9F7Db842726Eb81",
   NFT_TOKEN_ID: null,
   API_BASE: "",
-  ENABLE_SESSION_RESTORE: false // ⬅️ disable missing endpoint
+  ENABLE_SESSION_RESTORE: true // ⬅️ disable missing endpoint
 };
 
 //-----------DOMs lookup---------------
@@ -716,7 +730,7 @@ function selectNFT(nft, silent = false){
   pfpImg.src = resolveNFTImage(nft);
   }
 
-  localStorage.setItem('activeNFT', nft.tokenId);
+  if (userAddress) localStorage.setItem('activeNFT:' + userAddress, nft.tokenId);
 
   if(nftDropdown){
     nftDropdown.classList.add('hidden');
@@ -789,7 +803,7 @@ async function connectWallet(){
   connectBtn.textContent =
     `Connected: ${userAddress.slice(0,6)}...${userAddress.slice(-4)}`;
 
-  await authenticateAndFetchNFT();
+  try { await authenticateAndFetchNFT(); } catch (err) { push('System', escapeHtml(err.message || 'Wallet sign-in failed')); }
 }
 
 /* Silent restore */
@@ -810,17 +824,31 @@ async function restoreWalletConnection(){
 
 /* ---------------- AUTH ---------------- */
 async function authenticateAndFetchNFT(){
-  if(!userAddress) return;
-
-  const r = await fetch(`${CONFIG.API_BASE}/api/auth`,{
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({ address:userAddress }),
-    credentials:'include'
+  if(!userAddress || !signer) return;
+  const challengeResp = await fetch(`${CONFIG.API_BASE}/api/auth/challenge`, {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({address:userAddress}), credentials:'include'
   });
-
+  const challenge = await challengeResp.json();
+  if(!challengeResp.ok) throw new Error(challenge.error || 'Challenge failed');
+  const signature = await signer.signMessage(challenge.message);
+  const r = await fetch(`${CONFIG.API_BASE}/api/auth`, {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({address:userAddress,nonce:challenge.nonce,signature}), credentials:'include'
+  });
   const data = await r.json();
+  if(!r.ok) throw new Error(data.error || 'Authentication failed');
   handleNFTAuth(data);
+  if(data.returning) push('System','Welcome back, collector! Your Cyberpets collection has been synchronized. Your saved preferences are available when Memory is enabled.');
+  if(data.activities?.length){
+    const activity = data.activities.slice(0,10);
+    const summary = activity.map(a => `${a.direction === 'received' ? 'Received' : 'Sent'} Cyberpet #${escapeHtml(a.tokenId)}`).join('; ');
+    push('System', `Collection changes since your last connection: ${summary}${data.activities.length > 10 ? ' (and more)' : ''}. These are ownership changes, not verified sales.`);
+    const ids = data.activities.map(a=>a.id);
+    if(confirm(`CyberpetsAI detected ${ids.length} unacknowledged collection change(s). Mark as seen?`)){
+      await fetch(`${CONFIG.API_BASE}/api/activity/acknowledge`, {method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({ids})});
+    }
+  }
 }
 
 function handleNFTAuth(data){
@@ -858,7 +886,7 @@ function handleNFTAuth(data){
     inputEl.disabled = false;
     sendBtn.disabled = false;
 
-    const storedToken = localStorage.getItem('activeNFT');
+    const storedToken = localStorage.getItem('activeNFT:' + userAddress);
     renderNFTSelector(ownedNFTs, storedToken || data.activeTokenId);
 
     push('System', `Chat unlocked — ${ownedNFTs.length} Cyberpets verified 🐾`);
@@ -873,14 +901,14 @@ async function restoreSession(){
     if(!r.ok) return;
 
     const data = await r.json();
-    userAddress = data.address;
+    if (!userAddress || data.address.toLowerCase() !== userAddress.toLowerCase()) return;
     ownedNFTs = data.nfts || [];
 
     connectBtn.classList.remove('blink');
     connectBtn.textContent =
       `Connected: ${userAddress.slice(0,6)}...${userAddress.slice(-4)}`;
 
-    const storedToken = localStorage.getItem('activeNFT');
+    const storedToken = localStorage.getItem('activeNFT:' + userAddress);
     renderNFTSelector(ownedNFTs, storedToken || data.activeTokenId);
 
     inputEl.disabled = false;
@@ -890,6 +918,72 @@ async function restoreSession(){
   }catch{}
 }
 
+/* ---------------- ADVENTURE MODE ---------------- */
+const advPanel=document.getElementById('adventurePanel');
+let adventure=null,advDraft=null,advBusy=false;
+async function advRequest(url,method='GET',body){
+ const r=await fetch(url,{method,credentials:'include',headers:{'Content-Type':'application/json'},...(body?{body:JSON.stringify(body)}:{})});
+ const data=await r.json();if(!r.ok)throw new Error(data.error||'Adventure request failed');return data;
+}
+const advStatus=t=>document.getElementById('advStatus').textContent=t;
+function advRender(){
+ const state=advDraft?.state||adventure?.state;
+ document.getElementById('advState').textContent=state?`Location: ${state.location} | Turn ${state.turn}\nInventory: ${state.inventory.join(', ')||'Empty'}\nQuests: ${state.quests.join('; ')}`:'';
+}
+async function advRefresh(){
+ const list=await advRequest('/api/adventures');const el=document.getElementById('advList');
+ el.replaceChildren(new Option('New adventure',''));
+ list.forEach(a=>el.add(new Option(`#${a.tokenId} · ${a.title}`,a.id)));
+ if(adventure)el.value=adventure.id;
+}
+document.getElementById('adventureBtn').onclick=async()=>{
+ advPanel.classList.remove('hidden');advStatus('Loading adventures...');
+ try{await advRefresh();advStatus('Choose a saved adventure or start a new one.');}catch(e){advStatus(e.message);}
+};
+document.getElementById('advClose').onclick=()=>advPanel.classList.add('hidden');
+document.getElementById('advOpen').onclick=async()=>{
+ try{
+  const id=document.getElementById('advList').value;
+  adventure=id?await advRequest('/api/adventures/'+encodeURIComponent(id)):
+   await advRequest('/api/adventures','POST',{tokenId:activeNFT?.tokenId});
+  advDraft=null;document.getElementById('advSave').checked=true;
+  document.getElementById('advStory').textContent=adventure.state.scene;
+  advRender();advStatus('Adventure loaded. Save is ON.');await advRefresh();
+ }catch(e){advStatus(e.message);}
+};
+document.getElementById('advSave').onchange=e=>{
+ if(e.target.checked&&advDraft){e.target.checked=false;advStatus('Unsaved branch active. Reload the saved adventure to resume saving; temporary changes will be discarded.');return;}
+ advStatus(e.target.checked?'Progress saving ON':'Progress saving OFF — temporary branch only.');
+};
+document.getElementById('advSend').onclick=async()=>{
+ if(!adventure||advBusy)return;
+ const input=document.getElementById('advAction'),action=input.value.trim();if(!action)return;
+ advBusy=true;document.getElementById('advSend').disabled=true;advStatus('LinkLink is narrating...');
+ try{
+  const save=document.getElementById('advSave').checked;
+  const result=await advRequest('/api/adventures/'+adventure.id+'/turn','POST',{action,save,revision:adventure.revision,...(!save&&advDraft?{draft:advDraft}:{})});
+  if(save){adventure={...adventure,...result};}else{advDraft={state:result.state,recent:result.recent};}
+  document.getElementById('advStory').textContent+=`\n\nYOU: ${action}\n\nLINKLINK: ${result.narration}`;
+  input.value='';advRender();advStatus(save?'Progress saved':'Temporary branch — not saved');
+ }catch(e){advStatus(e.message);}finally{advBusy=false;document.getElementById('advSend').disabled=false;}
+};
+document.getElementById('advAction').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();document.getElementById('advSend').click();}});
+document.getElementById('advCheckpoint').onclick=async()=>{
+ if(!adventure)return advStatus('Load an adventure first.');
+ if(advDraft)return advStatus('Checkpoints require saved progress. Reload to exit the temporary branch.');
+ try{const label=prompt('Checkpoint name:','Story checkpoint');if(label===null)return;await advRequest('/api/adventures/'+adventure.id+'/checkpoints','POST',{label});advStatus('Checkpoint saved.');}catch(e){advStatus(e.message);}
+};
+document.getElementById('advRestore').onclick=async()=>{
+ if(!adventure)return advStatus('Load an adventure first.');
+ try{const cps=await advRequest('/api/adventures/'+adventure.id+'/checkpoints');if(!cps.length)return advStatus('No checkpoints yet.');
+  const choice=prompt('Choose checkpoint number:\n'+cps.map((c,i)=>`${i+1}. ${c.label}`).join('\n'),'1');if(!choice)return;
+  const cp=cps[Number(choice)-1];if(!cp)return advStatus('Invalid checkpoint');
+  if(!confirm('Restore checkpoint? Current saved progress will be replaced.'))return;
+  const data=await advRequest('/api/adventures/'+adventure.id+'/load-checkpoint','POST',{checkpointId:cp.id,revision:adventure.revision});
+  adventure={...adventure,...data};advDraft=null;document.getElementById('advSave').checked=true;
+  document.getElementById('advStory').textContent='Checkpoint restored. '+data.state.scene;advRender();advStatus('Checkpoint restored.');
+ }catch(e){advStatus(e.message);}
+};
 /* ---------------- CHAT ---------------- */
 async function sendMessage(){
   const t=inputEl.value.trim();
@@ -1039,6 +1133,25 @@ document.addEventListener('DOMContentLoaded', async ()=>{
   await loadAvatarMap();
 });
 */
+document.getElementById('memoryBtn').onclick=async()=>{
+  try{
+    const r=await fetch(`${CONFIG.API_BASE}/api/memory`,{credentials:'include'});
+    if(!r.ok){push('System','Connect and sign your wallet to manage memory.');return;}
+    const memory=await r.json();
+    const choice=prompt(`Collector Memory: ${memory.enabled?'ON':'OFF'}\nSaved notes: ${memory.notes.length}\n\n1 = Enable\n2 = Disable\n3 = View notes\n4 = Clear notes\n\nTo save a note, send: remember: your preference\nTo remove all notes, send: forget my memories`);
+    if(choice==='1'||choice==='2'){
+      const update=await fetch(`${CONFIG.API_BASE}/api/memory`,{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({enabled:choice==='1'})});
+      if(!update.ok)throw new Error('Unable to change memory settings');
+      push('System',choice==='1'?'Long-term memory enabled. Use “remember: ...” to save a short note.':'Long-term memory disabled. Existing notes are retained but not sent to the AI.');
+    }else if(choice==='3'){
+      alert(memory.notes.length?memory.notes.map((n,i)=>`${i+1}. ${n}`).join('\n'):'No saved memory notes.');
+    }else if(choice==='4'&&confirm('Permanently clear all saved collector memory notes?')){
+      const del=await fetch(`${CONFIG.API_BASE}/api/memory`,{method:'DELETE',credentials:'include'});
+      if(!del.ok)throw new Error('Unable to clear notes');
+      push('System','Saved collector memory notes cleared.');
+    }
+  }catch(e){push('System',escapeHtml(e.message||'Memory settings unavailable'));}
+};
 connectBtn.onclick = connectWallet;
 sendBtn.onclick = sendMessage;
 inputEl.addEventListener('keydown',e=>{
@@ -1052,7 +1165,7 @@ push('System','Welcome — click Connect Wallet. Chat unlocks only if your walle
   await loadAvatarMap();  
   await restoreWalletConnection();
   await restoreSession();
-  await autoAuthIfNeeded();
+  // Signing is initiated by an explicit Connect Wallet click only.
 })();
 </script>
 </body>
