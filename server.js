@@ -156,7 +156,15 @@ Train hard. Love harder. Own the future. 🚀🎮🐾
 const app = express();
 app.use(express.json());
 app.use(cookieParser());
-app.use(express.static(__dirname));
+// Serve only intended public assets, never backend source, local environment or database files.
+const publicFiles = new Set(['favicon.ico','cyberpet_avatar_map.json','rarity_results.json',
+  'BirdyPeyAi-01.png','BunnyPetAi-01.png','GerblePetAi-01.png','TeddyPetAi2-01.png',
+  'TurtlePetAi-01.png','Untitled-1 [Recovered]-01.png']);
+app.get('/:asset', (req,res,next) => {
+  if (!publicFiles.has(req.params.asset)) return next();
+  res.sendFile(path.join(__dirname, req.params.asset));
+});
+app.use('/public', express.static(path.join(__dirname,'public'), {dotfiles:'deny',index:false}));
 
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 const OPENSEA_API_KEY = process.env.OPENSEA_API_KEY;
@@ -213,41 +221,65 @@ const CONFIG = {
 };
 const store = createCollectorStore(pg, process.env.DATABASE_URL);
 const INACTIVITY_LIMIT = 30 * 60 * 1000;
-const cookieOptions = { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'strict', path: '/' };
+const cookieOptions = { httpOnly: true, secure: process.env.NODE_ENV === 'production' || !!process.env.VERCEL, sameSite: 'lax', path: '/' };
 const hashSession = value => crypto.createHash('sha256').update(value).digest('hex');
 const validAddress = value => typeof value === 'string' && ethers.utils.isAddress(value);
 const asyncRoute = fn => (req,res,next) => Promise.resolve(fn(req,res,next)).catch(next);
 async function getSession(req) {
-  const raw = req.cookies.sessionId;
+  const raw = req.cookies?.sessionId;
   if (!raw || !/^[a-f0-9]{64}$/.test(raw)) return null;
   return store.session(hashSession(raw), INACTIVITY_LIMIT);
 }
 async function fetchWalletNFTs(address) {
-  const nfts = []; let cursor = null;
+  if (!OPENSEA_API_KEY) throw new Error('OPENSEA_API_KEY is not configured');
+  const holdings = new Map();
+  let cursor = null;
   for (let page = 0; page < 20; page++) {
     const url = new URL(`https://api.opensea.io/api/v2/chain/${CONFIG.CHAIN}/account/${address}/nfts`);
     url.searchParams.set('collection', CONFIG.COLLECTION_SLUG);
-    url.searchParams.set('limit', '200');
+    // OpenSea's supported page size is 50. Preserve legacy compatibility.
+    url.searchParams.set('limit', '50');
     if (cursor) url.searchParams.set('next', cursor);
-    const response = await fetch(url, { headers: { 'X-API-KEY': OPENSEA_API_KEY, Accept: 'application/json' } });
+    const response = await fetch(url, { headers: { 'X-API-KEY': OPENSEA_API_KEY, Accept: 'application/json' }, signal: AbortSignal.timeout(12000) });
     if (!response.ok) throw new Error(`OpenSea holdings lookup failed (${response.status})`);
     const data = await response.json();
-    nfts.push(...(data.nfts || []).filter(n => n.contract?.toLowerCase() === CONFIG.NFT_CONTRACT.toLowerCase() || !n.contract));
+    for (const nft of (data.nfts || [])) {
+      if (String(nft.contract || '').toLowerCase() !== CONFIG.NFT_CONTRACT.toLowerCase()) continue;
+      const id = String(nft.identifier ?? '');
+      if (!/^\d+$/.test(id)) continue;
+      holdings.set(id, nft);
+    }
     if (!data.next) break;
+    if (data.next === cursor || page === 19) throw new Error('OpenSea collection pagination incomplete');
     cursor = data.next;
-    if (page === 19) throw new Error('Collection pagination exceeded safety limit');
   }
-  return (await Promise.all(nfts.map(n => fetchNFTByTokenId(String(n.identifier))))).filter(Boolean);
+  // Holdings are the authority for NFT access. Metadata failures must not remove
+  // verified holdings. Fetch in small batches to reduce rate-limit pressure.
+  const entries = [...holdings.entries()];
+  const results = [];
+  for (let i = 0; i < entries.length; i += 5) {
+    const batch = await Promise.all(entries.slice(i,i+5).map(async ([tokenId, nft]) => {
+      let metadata = null;
+      try { metadata = await fetchNFTByTokenId(tokenId); }
+      catch (err) { console.warn('NFT metadata unavailable:', tokenId, err.message); }
+      return metadata || {
+        tokenId,
+        name: nft.name || `CyberPet #${tokenId}`,
+        image: nft.image_url || nft.display_image_url || null,
+        traits: Array.isArray(nft.traits) ? nft.traits : []
+      };
+    }));
+    results.push(...batch);
+  }
+  return results;
 }
 // ---------------- FETCH NFT METADATA ----------------
 async function fetchNFTByTokenId(tokenId) {
   const url = `https://api.opensea.io/api/v2/metadata/${CONFIG.CHAIN}/${CONFIG.NFT_CONTRACT}/${tokenId}`;
 
   const resp = await fetch(url, {
-    headers: {
-      'X-API-KEY': OPENSEA_API_KEY,
-      Accept: 'application/json'
-    }
+    headers: { 'X-API-KEY': OPENSEA_API_KEY, Accept: 'application/json' },
+    signal: AbortSignal.timeout(8000)
   });
 
   if (!resp.ok) {
@@ -480,6 +512,8 @@ if (!process.env.VERCEL) {
 }
 app.use((err, req, res, next) => {
   console.error('API error:', err.message);
-  res.status(503).json({ error: 'Collector service temporarily unavailable' });
+  if (res.headersSent) return next(err);
+  const unavailable = /DATABASE_URL|ECONNREFUSED|ENOTFOUND|certificate|timeout/i.test(err.message || '');
+  res.status(unavailable ? 503 : 500).json({ error: unavailable ? 'Collector database service unavailable' : 'Server request failed' });
 });
 export default app;

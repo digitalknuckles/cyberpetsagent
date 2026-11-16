@@ -799,11 +799,18 @@ async function connectWallet(){
   signer = web3Provider.getSigner();
   userAddress = accounts[0].toLowerCase();
 
-  connectBtn.classList.remove('blink');
-  connectBtn.textContent =
-    `Connected: ${userAddress.slice(0,6)}...${userAddress.slice(-4)}`;
-
-  try { await authenticateAndFetchNFT(); } catch (err) { push('System', escapeHtml(err.message || 'Wallet sign-in failed')); }
+  connectBtn.textContent = 'Authenticating wallet…';
+  connectBtn.disabled = true;
+  try {
+    await authenticateAndFetchNFT();
+    connectBtn.classList.remove('blink');
+    connectBtn.textContent = `Authenticated: ${userAddress.slice(0,6)}...${userAddress.slice(-4)}`;
+  } catch (err) {
+    hasNFTAccess = false; inputEl.disabled = true; sendBtn.disabled = true;
+    connectBtn.textContent = 'Connect Wallet';
+    connectBtn.classList.add('blink');
+    push('System', escapeHtml(err.message || 'Wallet sign-in failed'));
+  } finally { connectBtn.disabled = false; }
 }
 
 /* Silent restore */
@@ -817,9 +824,7 @@ async function restoreWalletConnection(){
   signer = web3Provider.getSigner();
   userAddress = accounts[0].toLowerCase();
 
-  connectBtn.classList.remove('blink');
-  connectBtn.textContent =
-    `Connected: ${userAddress.slice(0,6)}...${userAddress.slice(-4)}`;
+  connectBtn.textContent = `Wallet detected: ${userAddress.slice(0,6)}...${userAddress.slice(-4)} (sign in)`;
 }
 
 /* ---------------- AUTH ---------------- */
@@ -906,13 +911,14 @@ async function restoreSession(){
 
     connectBtn.classList.remove('blink');
     connectBtn.textContent =
-      `Connected: ${userAddress.slice(0,6)}...${userAddress.slice(-4)}`;
+      `Authenticated: ${userAddress.slice(0,6)}...${userAddress.slice(-4)}`;
 
     const storedToken = localStorage.getItem('activeNFT:' + userAddress);
     renderNFTSelector(ownedNFTs, storedToken || data.activeTokenId);
 
-    inputEl.disabled = false;
-    sendBtn.disabled = false;
+    hasNFTAccess = ownedNFTs.length > 0;
+    inputEl.disabled = !hasNFTAccess;
+    sendBtn.disabled = !hasNFTAccess;
 
     push('System','Session restored — welcome back 🐾');
   }catch{}
@@ -1100,17 +1106,6 @@ function push(who, text){
   return m;
 }
 */
-
-async function autoAuthIfNeeded(){
-  if(!userAddress) return;
-  if(hasNFTAccess) return;
-
-  try{
-    await authenticateAndFetchNFT();
-  }catch(err){
-    console.warn('Auto-auth failed', err);
-  }
-}
 
 /* ---------------- INIT ------------------------------------------------------------------------------------------------------ */
 async function loadRarityTable() {

@@ -1,8 +1,11 @@
 // Wallet-scoped, NFT-linked adventure saves. Existing collector database is reused.
 export function createAdventureStore(pg, connectionString) {
-  const pool = new pg.Pool({connectionString, max:3, ssl: connectionString.includes('localhost') ? false : {rejectUnauthorized:true}});
+  // Initialize lazily: a missing database must not crash the entire Express function.
+  const pool = connectionString ? new pg.Pool({connectionString, max:3, ssl: /(?:localhost|127\.0\.0\.1)/.test(connectionString) ? false : {rejectUnauthorized:true}}) : null;
   let readyPromise;
-  const ready=()=>readyPromise ||= pool.query(`
+  const ready=()=>{
+    if (!pool) throw new Error('DATABASE_URL is not configured');
+    return readyPromise ||= pool.query(`
     CREATE TABLE IF NOT EXISTS collector_adventures (
       id UUID PRIMARY KEY, address TEXT NOT NULL REFERENCES collector_profiles(address),
       chain_id INTEGER NOT NULL DEFAULT 137, contract TEXT NOT NULL, token_id TEXT NOT NULL,
@@ -19,6 +22,7 @@ export function createAdventureStore(pg, connectionString) {
       created_at TIMESTAMPTZ NOT NULL DEFAULT now()
     );
   `).catch(e=>{readyPromise=null;throw e;});
+  };
   return {
     async list(address){await ready();const {rows}=await pool.query('SELECT id,token_id AS "tokenId",title,save_enabled AS "saveEnabled",updated_at AS "updatedAt" FROM collector_adventures WHERE address=$1 ORDER BY updated_at DESC LIMIT 30',[address]);return rows;},
     async get(address,id){await ready();const {rows}=await pool.query('SELECT * FROM collector_adventures WHERE address=$1 AND id=$2',[address,id]);return rows[0];},
