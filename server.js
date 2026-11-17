@@ -425,8 +425,7 @@ app.use((err, req, res, next) => {
   console.error('API error:', err.message);
   if (res.headersSent) return next(err);
   const unavailable = /DATABASE_URL|ECONNREFUSED|ENOTFOUND|certificate|timeout/i.test(err.message || '');
-  const known = Number(err.status);
-  if (Number.isInteger(known) && [400,401,403,404,409,429].includes(known)) return res.status(known).json({error:err.message});
-  res.status(unavailable ? 503 : 500).json({ error: unavailable ? 'Collector database service unavailable' : 'Server request failed' });
+  const status=Number.isInteger(err.status)&&err.status>=400&&err.status<500?err.status:(unavailable?503:500);
+  res.status(status).json({error:status<500?err.message:(unavailable?'Collector database service unavailable':'Server request failed')});
 });
 export default app;

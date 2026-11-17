@@ -483,7 +483,6 @@ function drawStartMenu() {
 function startGame() {
   if (allowInput && showStartMenu) {
     showStartMenu = false;
-    if(window.parent !== window) window.parent.postMessage({type:"cyberpets:trainer:started"}, window.location.origin);
   }
 }
 
