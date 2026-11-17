@@ -451,6 +451,18 @@ header{padding-right:132px!important}
 #petDetails{margin-top:12px;padding:12px;background:#132b3b;border-radius:10px;line-height:1.6}
 @media(max-width:900px){.avatar{display:none!important}}
 @media(max-width:600px){.pfp-overlay{width:88px!important;height:88px!important}.nft-status{top:98px!important;width:86px!important}header{padding-right:104px!important}#petProgress{gap:7px;font-size:11px}}
+
+/* v1.3.4a: the floating pet occupies a separate desktop rail, not the game/chat surface. */
+@media(min-width:901px){
+  .app{position:relative;isolation:isolate}
+  #avatar.avatar{position:fixed!important;width:clamp(90px,10vw,170px)!important;height:clamp(90px,10vw,170px)!important;left:max(8px,calc((100vw - 1120px)/2 - 188px))!important;top:auto!important;bottom:26px!important;z-index:0!important;pointer-events:none!important;opacity:.82!important}
+  .app,.app #workspace,.app .messages,.app .composer{z-index:1}
+  .msg.ai{position:relative}
+}
+@media(min-width:901px) and (max-width:1460px){#avatar.avatar{display:none!important}}
+/* Message portraits stay inside each bubble instead of escaping their boundaries. */
+.msg{box-sizing:border-box;min-width:0;overflow-wrap:anywhere;overflow:hidden}
+.msg-avatar{max-width:48px!important;max-height:48px!important;width:48px!important;height:48px!important;object-fit:contain;float:left;margin:0 10px 6px 0;position:static!important}
 </style>
 </head>
 <link rel="icon" href="favicon.ico" type="image/x-icon">
@@ -602,22 +614,13 @@ function escapeHtml(u=''){
     .replaceAll('\n','<br/>');
 }
 
+// Keep the large desktop avatar inside its own decorative rail, never over chat or games.
 function bindAvatarTo(el){
-  if(!avatar || !el) return;
-  const msgRect = el.getBoundingClientRect();
-  const appRect = document.querySelector('.app').getBoundingClientRect();
-  const composerRect = document.querySelector('.composer').getBoundingClientRect();
-
-  // Adjust top so avatar doesn't go below composer
-  let top = msgRect.top - appRect.top - 100;
-  const maxTop = composerRect.top - appRect.top - avatar.offsetHeight - 100;
-  if(top > maxTop) top = maxTop;
-  if(top < 0) top = 0;
-
-  avatar.style.left = '-200px';  // distance from chat area, adjust as needed-----------------------------------------------------
-  avatar.style.top = top + 'px';
-  avatar.style.position = 'absolute';
-  avatar.style.zIndex = 1;
+  if(!avatar) return;
+  avatar.style.left='';
+  avatar.style.top='';
+  avatar.style.position='';
+  avatar.style.zIndex='';
 }
 
 function updateFloatingAvatar(tokenId){
@@ -1378,20 +1381,53 @@ document.getElementById('trainerReveal').onclick=async()=>{
   }
   await setLinkMode('trainer');
   trainingRun=null;
-  try{trainingRun=await petApi('/api/pet/training/start','POST',{tokenId:String(activeNFT.tokenId)});document.getElementById('trainerStatus').textContent='Training started · Complete the simulation to earn 20 Cyberpet XP.';}catch(err){document.getElementById('trainerStatus').textContent=err.message+' · Practice mode (no XP).';}
+  document.getElementById('trainerStatus').textContent='Press Start in Trainer to begin a reward-eligible session.';
   document.getElementById('trainerFrame').src='/trainer/';
   push('LinkLink','Trainer artifact revealed. Use Train, Charge, Clean and Play to care for your Cyberpet.');
  }catch(e){push('LinkLink',escapeHtml(e.message));}
 };
-document.getElementById('trainerExit').onclick=()=>{trainingRun=null;setLinkMode('chat');};
+document.getElementById('trainerExit').onclick=()=>{trainingRun=null;trainingStarting=null;clearInterval(trainingTicker);trainingTicker=null;setLinkMode('chat');};
 document.getElementById('trainerDiscovery').addEventListener('click',e=>{if(e.target.id==='trainerDiscovery')closeTrainerDiscovery();});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!document.getElementById('trainerDiscovery').classList.contains('hidden'))closeTrainerDiscovery();});
+let trainingStarting=null;
+let trainingTicker=null;
+function trainingStatus(message){document.getElementById('trainerStatus').textContent=message;}
 window.addEventListener('message',e=>{
  if(e.origin!==window.location.origin||e.source!==document.getElementById('trainerFrame').contentWindow)return;
+ if(e.data?.type==='cyberpets:trainer:started'){
+   if(trainingRun||trainingStarting||!activeNFT)return;
+   const tokenId=String(activeNFT.tokenId);
+   trainingStatus('Starting verified training session…');
+   trainingStarting=petApi('/api/pet/training/start','POST',{tokenId}).then(run=>{
+     if(String(activeNFT?.tokenId)!==tokenId)return;
+     trainingRun={...run,tokenId,startedAt:Date.now()};
+     clearInterval(trainingTicker);
+     const update=()=>{if(!trainingRun){clearInterval(trainingTicker);return;}const remain=Math.max(0,Math.ceil((trainingRun.minSeconds||45)-(Date.now()-trainingRun.startedAt)/1000));trainingStatus(remain?'Training active · XP eligibility in '+remain+'s':'Training eligible for XP · Finish the simulation to claim.');};
+     update();trainingTicker=setInterval(update,1000);
+   }).catch(err=>trainingStatus(err.message+' · Practice mode (no XP).')).finally(()=>trainingStarting=null);
+   return;
+ }
+
  if(e.data?.type==='cyberpets:trainer:complete'){
-  const run=trainingRun;trainingRun=null;
-  if(!run||!activeNFT||String(activeNFT.tokenId)!==run.tokenId){push('LinkLink','Training simulation complete (practice mode).');return;}
-  petApi('/api/pet/training/complete','POST',{runId:run.runId,tokenId:run.tokenId}).then(d=>{renderPetProgress(d.pet);document.getElementById('trainerStatus').textContent='Training complete · +'+d.xp+' Cyberpet XP';push('LinkLink','Training completed! Your active Cyberpet earned +'+d.xp+' XP.');}).catch(err=>{document.getElementById('trainerStatus').textContent=err.message;push('LinkLink',escapeHtml('Training completed, but no XP was awarded: '+err.message));});
+  const finish=async()=>{
+    if(trainingStarting)await trainingStarting;
+    const run=trainingRun;
+    if(!run||!activeNFT||String(activeNFT.tokenId)!==run.tokenId){push('LinkLink','Training simulation complete (practice mode).');return;}
+    const remain=Math.max(0,Math.ceil((run.minSeconds||45)-(Date.now()-run.startedAt)/1000));
+    if(remain){
+      trainingStatus('Simulation complete · Cooling down '+remain+'s before XP claim.');
+      await new Promise(resolve=>setTimeout(resolve,remain*1000+1200));
+    }
+    // Keep the claim bound to the original verified token even if the user switches pets.
+    try{
+      const d=await petApi('/api/pet/training/complete','POST',{runId:run.runId,tokenId:run.tokenId});
+      if(String(activeNFT?.tokenId)===run.tokenId)renderPetProgress(d.pet);
+      trainingStatus('Training complete · +'+d.xp+' Cyberpet XP');
+      push('LinkLink','Training completed! Cyberpet #'+run.tokenId+' earned +'+d.xp+' XP.');
+    }catch(err){trainingStatus(err.message);push('LinkLink',escapeHtml('Training reward not awarded: '+err.message));}
+    finally{if(trainingRun?.runId===run.runId)trainingRun=null;clearInterval(trainingTicker);trainingTicker=null;}
+  };
+  finish();
  }
 });
 
