@@ -528,6 +528,21 @@ main.chat-area{background:linear-gradient(155deg,rgba(22,35,55,.78),rgba(8,19,32
 }
 @media(max-width:1199px){main.chat-area{width:100%;flex:1;min-height:0}.msg{max-width:82%}.response-avatar{left:-39px;width:53px}.msg.ai{margin-left:39px}}
 @media(max-width:500px){main.chat-area{padding:10px 10px 16px}.msg{max-width:85%;font-size:14px;padding:10px 12px}.msg.ai{margin-left:33px}.response-avatar{left:-34px;width:46px;height:67px}.response-avatar img{width:88px;height:88px;right:-39px;bottom:-10px}}
+
+/* v1.3.7: the conversation and composer are siblings in the flex column.
+   The composer occupies real layout height; messages scroll only above it. */
+.app{min-height:0}
+#workspace{flex:1 1 auto;min-height:0;overflow:hidden}
+main.chat-area{box-sizing:border-box;flex:1 1 0!important;min-height:0!important;max-height:100%;overflow-y:auto;overscroll-behavior:contain;padding-bottom:18px!important;scrollbar-gutter:stable}
+.composer{position:relative!important;inset:auto!important;bottom:auto!important;left:auto!important;right:auto!important;flex:0 0 auto;box-sizing:border-box;min-height:64px;z-index:6;}
+.messages{min-height:0;padding:2px 0 12px}
+/* The active NFT portrait is completely visible and only attached to the latest AI reply. */
+.msg.ai{margin-left:clamp(66px,8vw,100px)!important}
+.response-avatar{width:clamp(68px,8vw,100px)!important;height:clamp(68px,8vw,100px)!important;left:calc(-1 * clamp(68px,8vw,100px))!important;bottom:0!important;overflow:visible!important}
+.response-avatar img{position:static!important;display:block;width:100%!important;height:100%!important;max-width:100%!important;object-fit:contain!important;transform-origin:50% 90%}
+@media(min-width:1200px){.composer{width:min(50%,var(--chat-lane));max-width:var(--chat-lane);align-self:center}main.chat-area{width:min(50%,var(--chat-lane));max-width:var(--chat-lane);align-self:center}}
+@media(max-width:700px){.msg.ai{margin-left:60px!important}.response-avatar{width:60px!important;height:68px!important;left:-60px!important}.composer{padding-bottom:max(8px,env(safe-area-inset-bottom))}}
+@media(max-width:380px){.msg.ai{margin-left:50px!important}.response-avatar{width:50px!important;height:60px!important;left:-50px!important}}
 </style>
 </head>
 <link rel="icon" href="favicon.ico" type="image/x-icon">
@@ -668,7 +683,10 @@ if (pfpImg) {
 
 /* ---------------- UTIL ---------------- */
 function scrollBottom(){
-  messages.parentElement.scrollTop = messages.parentElement.scrollHeight;
+  const viewport=messages.parentElement;
+  if(!viewport) return;
+  viewport.scrollTop=viewport.scrollHeight;
+  requestAnimationFrame(()=>{viewport.scrollTop=viewport.scrollHeight;});
 }
 
 function escapeHtml(u=''){
@@ -690,13 +708,20 @@ function currentChatAvatarUrl(){
 }
 function bindAvatarTo(el){
   if(!el || !el.classList.contains('ai')) return;
+  // Keep exactly one active portrait, paired with the newest AI message.
+  const latest = [...messages.querySelectorAll('.msg.ai')].at(-1);
+  if(latest !== el) return;
+  messages.querySelectorAll('.response-avatar').forEach(node => {
+    if(!el.contains(node)) node.remove();
+  });
   let portrait = el.querySelector('.response-avatar');
   if(!portrait){
     portrait = document.createElement('span');
     portrait.className='response-avatar';
     const img=document.createElement('img');
     img.alt='Active Cyberpet';
-    img.loading='lazy';
+    img.loading='eager';
+    img.addEventListener('load',scrollBottom);
     img.onerror=()=>{ if(img.src !== new URL(DEFAULT_PFP,location.href).href) img.src=DEFAULT_PFP; };
     portrait.appendChild(img);
     el.prepend(portrait);
@@ -704,6 +729,7 @@ function bindAvatarTo(el){
   portrait.querySelector('img').src=currentChatAvatarUrl();
   portrait.classList.toggle('thinking',!!el.querySelector('.loading-spinner'));
   portrait.classList.toggle('responding',!el.querySelector('.loading-spinner'));
+  scrollBottom();
 }
 
 function updateFloatingAvatar(tokenId){
@@ -928,6 +954,8 @@ function selectNFT(nft, silent = false){
   activeNFT = nft;
   CONFIG.NFT_TOKEN_ID = nft.tokenId;
   updateFloatingAvatar(nft?.tokenId);
+  const activeReply = [...messages.querySelectorAll('.msg.ai')].at(-1);
+  if(activeReply) bindAvatarTo(activeReply);
 
   // ✅ replace placeholder ONLY after verified NFT selection
   if (pfpImg && nft?.image) {
