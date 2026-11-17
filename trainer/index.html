@@ -506,7 +506,10 @@ function resizeCanvas() {
 window.addEventListener("resize", resizeCanvas);
 resizeCanvas();
 
+// Larger pet artwork: scale the active avatar without changing underlying collision physics.
+function drawLargePet(){if(pet.image.complete&&pet.image.naturalWidth>0){const w=pet.width*2,h=pet.height*2;ctx.drawImage(pet.image,pet.x+pet.width/2-w/2,pet.y+pet.height/2-h/2,w,h);}else{ctx.fillStyle='red';ctx.fillRect(pet.x,pet.y,pet.width,pet.height);}}
 function drawPet() {
+  return drawLargePet();
   if (pet.image.complete && pet.image.naturalWidth > 0) {
     ctx.drawImage(pet.image, pet.x, pet.y, pet.width, pet.height);
     if (pet.collisionMsg) {

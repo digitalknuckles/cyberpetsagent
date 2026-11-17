@@ -15,6 +15,7 @@ import { createCollectorStore } from './collector-memory.js';
 import { mountAdventures } from './adventure-routes.js';
 import { linklinkPrompt } from './linklink-core.js';
 import { createRpgStore } from './rpg-store.js';
+import { createPetStore } from './pet-store.js';
 import { viewRpg, campaign } from './rpg-engine.js';
 
 // ---------------- PATH SETUP ----------------
@@ -284,9 +285,14 @@ mountAdventures(app, {pg,connectionString:process.env.DATABASE_URL,getSession,op
 
 // V1.3: wallet-scoped RPG state, validated choices and atomic reward writes.
 const rpgStore=createRpgStore(pg,process.env.DATABASE_URL);
+const petStore=createPetStore(pg,process.env.DATABASE_URL);
+function verifiedPet(session,tokenId){return typeof tokenId==='string'&&tokenId.length<=100&&session.nfts?.some(n=>String(n.tokenId)===tokenId);}
+app.get('/api/pet',asyncRoute(async(req,res)=>{const session=await getSession(req);if(!session)return res.status(401).json({error:'Unauthorized'});const tokenId=String(req.query.tokenId||'');if(!verifiedPet(session,tokenId))return res.status(403).json({error:'Select an owned Cyberpet'});res.json(await petStore.get(session.address,tokenId));}));
+app.post('/api/pet/training/start',asyncRoute(async(req,res)=>{const session=await getSession(req);if(!session)return res.status(401).json({error:'Unauthorized'});const tokenId=req.body?.tokenId;if(!verifiedPet(session,tokenId))return res.status(403).json({error:'Select an owned Cyberpet'});res.json(await petStore.begin(session.address,tokenId));}));
+app.post('/api/pet/training/complete',asyncRoute(async(req,res)=>{const session=await getSession(req);if(!session)return res.status(401).json({error:'Unauthorized'});const {tokenId,runId}=req.body||{};if(!verifiedPet(session,tokenId)||typeof runId!=='string'||! /^[a-f0-9-]{36}$/.test(runId))return res.status(400).json({error:'Invalid training claim'});res.json(await petStore.complete(session.address,tokenId,runId));}));
 app.get('/api/rpg',asyncRoute(async(req,res)=>{const session=await getSession(req);if(!session)return res.status(401).json({error:'Unauthorized'});const result=await rpgStore.get(session.address);res.json({...viewRpg(result.state),revision:result.revision});}));
 app.get('/api/rpg/campaign',asyncRoute(async(req,res)=>{const session=await getSession(req);if(!session)return res.status(401).json({error:'Unauthorized'});res.json(campaign);}));
-app.post('/api/rpg/action',asyncRoute(async(req,res)=>{const session=await getSession(req);if(!session)return res.status(401).json({error:'Unauthorized'});if(!session.nfts?.length)return res.status(403).json({error:'Owned Cyberpet required'});const {action,revision}=req.body||{};if(typeof action!=='string'||action.length>40||!Number.isInteger(revision))return res.status(400).json({error:'Invalid action'});const result=await rpgStore.act(session.address,action,revision);if(!result)return res.status(409).json({error:'Progress changed; refresh your agent status'});res.json({...viewRpg(result.player),revision:result.revision,narration:result.narration,reward:result.reward});}));
+app.post('/api/rpg/action',asyncRoute(async(req,res)=>{const session=await getSession(req);if(!session)return res.status(401).json({error:'Unauthorized'});if(!session.nfts?.length)return res.status(403).json({error:'Owned Cyberpet required'});const {action,revision,tokenId}=req.body||{};if(!verifiedPet(session,tokenId))return res.status(403).json({error:'Select an owned Cyberpet'});if(typeof action!=='string'||action.length>40||!Number.isInteger(revision))return res.status(400).json({error:'Invalid action'});const result=await rpgStore.act(session.address,action,revision,tokenId,petStore);if(!result)return res.status(409).json({error:'Progress changed; refresh your agent status'});res.json({...viewRpg(result.player),revision:result.revision,narration:result.narration,reward:result.reward});}));
 
 // ---------------- CHAT ----------------
 app.post('/api/chat', asyncRoute(async (req, res) => { 

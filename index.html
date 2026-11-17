@@ -441,6 +441,16 @@ main.chat-area{flex:1;min-height:0;padding:10px 8px 16px;overflow:auto;scrollbar
 .trainer-discovery p{line-height:1.5}
 .trainer-discovery-actions{display:flex;gap:10px;flex-wrap:wrap}
 @media(max-width:600px){#trainerPanel{padding:5px}#trainerFrame{min-height:300px}.trainer-toolbar{font-size:13px}}
+/* v1.3.4: 200% avatar/PFP size; responsive without blocking menus */
+.pfp-overlay{width:108px!important;height:108px!important;top:8px!important;right:12px!important}
+.nft-status{top:119px!important;right:14px!important;width:104px!important}
+.avatar{width:280px!important;height:280px!important;left:max(8px,calc(50% - 710px))!important}
+header{padding-right:132px!important}
+#petProgress{display:flex;gap:12px;align-items:center;flex-wrap:wrap;padding:8px 14px;background:#0b2231;border-bottom:1px solid #2b5268;color:#d8f4ff;font-size:12px}
+.pet-meter{display:flex;gap:6px;align-items:center}.pet-meter>span{width:85px;height:9px;border-radius:10px;background:#334859;overflow:hidden}.pet-meter i{display:block;height:100%;width:0%;background:#47cda6}.pet-meter:has(#petXpBar) i{background:#ae9bfa}.pet-meter small{min-width:43px}
+#petDetails{margin-top:12px;padding:12px;background:#132b3b;border-radius:10px;line-height:1.6}
+@media(max-width:900px){.avatar{display:none!important}}
+@media(max-width:600px){.pfp-overlay{width:88px!important;height:88px!important}.nft-status{top:98px!important;width:86px!important}header{padding-right:104px!important}#petProgress{gap:7px;font-size:11px}}
 </style>
 </head>
 <link rel="icon" href="favicon.ico" type="image/x-icon">
@@ -478,12 +488,13 @@ main.chat-area{flex:1;min-height:0;padding:10px 8px 16px;overflow:auto;scrollbar
  <div class="hub-meter"><strong>HP</strong><div class="meter-track"><span id="hubHpBar"></span></div><span id="hubHpText">—</span></div>
  <div class="hub-meter xp"><strong>XP</strong><div class="meter-track"><span id="hubXpBar"></span></div><span id="hubXpText">—</span></div>
 </div>
+<div id="petProgress" aria-label="Selected Cyberpet progression"><strong id="petName">Cyberpet · Select NFT</strong><span id="petLevel">Lv —</span><div class="pet-meter"><label>HP</label><span><i id="petHpBar"></i></span><small id="petHpText">—</small></div><div class="pet-meter"><label>XP</label><span><i id="petXpBar"></i></span><small id="petXpText">—</small></div><span id="petCombatStats">Power — · Defense — · Containment —</span></div>
 <div id="workspace"><div id="workspaceTitle">LinkLink · Companion Chat</div>
 <section id="agentPanel" class="hidden" aria-label="Containment Agent status">
   <div class="agent-heading"><strong>Containment Agent</strong><button id="agentClose" type="button">Close</button></div>
   <div id="agentStats" aria-live="polite">Authenticate your wallet to load agent progress.</div>
   <div id="agentMission"></div><div id="agentChoices" class="agent-choices"></div>
-  <div id="agentInventory"></div><div id="agentNotice" role="status"></div>
+  <div id="agentInventory"></div><div id="petDetails" role="status">Select a Cyberpet to view its training stats.</div><div id="agentNotice" role="status"></div>
 </section>
 <section id="adventurePanel" class="hidden" style="padding:12px;max-height:75vh;overflow:auto;background:#101820;color:#e9f5ee;border:1px solid #2c6155;border-radius:12px;margin:8px;position:relative;z-index:5">
  <h3 style="margin:4px 0">LinkLink · Freeform Adventure <small style="font-weight:normal">· RPG Mode</small></h3>
@@ -839,6 +850,7 @@ function selectNFT(nft, silent = false){
 
   if (userAddress) localStorage.setItem('activeNFT:' + userAddress, nft.tokenId);
   syncTrainerPetAvatar();
+  loadPetProgress().catch(()=>{});
 
   if(nftDropdown){
     nftDropdown.classList.add('hidden');
@@ -1097,6 +1109,13 @@ document.getElementById('advRestore').onclick=async()=>{
   document.getElementById('advStory').textContent='Checkpoint restored. '+data.state.scene;advRender();advStatus('Checkpoint restored.');
  }catch(e){advStatus(e.message);}
 };
+
+// Active NFT progression is scoped by signed wallet session + verified token ID.
+let petProgress=null,trainingRun=null;
+async function petApi(url,method='GET',body){const r=await fetch(url,{method,credentials:'include',headers:{'Content-Type':'application/json'},...(body?{body:JSON.stringify(body)}:{})});const d=await r.json();if(!r.ok)throw Error(d.error||'Cyberpet request failed');return d;}
+function renderPetProgress(p){petProgress=p;const goal=Math.max(1,p.level*100);const petLabel=activeNFT?.name||'Cyberpet #'+activeNFT?.tokenId;document.getElementById('petName').textContent=petLabel;document.getElementById('petLevel').textContent='Lv '+p.level;document.getElementById('petHpBar').style.width=(100*p.hp/Math.max(1,p.maxHp))+'%';document.getElementById('petXpBar').style.width=(100*p.xp/goal)+'%';document.getElementById('petHpText').textContent=p.hp+'/'+p.maxHp;document.getElementById('petXpText').textContent=p.xp+'/'+goal;document.getElementById('petCombatStats').textContent=`Power ${p.power} · Defense ${p.defense} · Containment ${p.containment}`;document.getElementById('petDetails').textContent=`Active Cyberpet · Lv ${p.level} · HP ${p.hp}/${p.maxHp} · Power ${p.power} · Defense ${p.defense} · Containment ${p.containment} · Abilities: ${p.abilities.join(', ')} · Items: ${p.inventory.join(', ')||'None'} · Training wins: ${p.trainingWins}`;}
+async function loadPetProgress(){if(!activeNFT||!ownedNFTs.some(n=>String(n.tokenId)===String(activeNFT.tokenId)))return;const tokenId=String(activeNFT.tokenId);const d=await petApi('/api/pet?tokenId='+encodeURIComponent(tokenId));if(String(activeNFT?.tokenId)===tokenId)renderPetProgress(d.pet);}
+
 /* ---------------- LINKLINK V1.3 AGENT ---------------- */
 let agentState=null,agentBusy=false;
 const agentPanel=document.getElementById('agentPanel');
@@ -1110,7 +1129,7 @@ function agentRender(data){agentState=data;const p=data.player;updateHub(p);
 }
 async function agentLoad(){const r=await fetch('/api/rpg',{credentials:'include'});const d=await r.json();if(!r.ok)throw Error(d.error||'Unable to load agent');agentRender(d);}
 async function agentAct(action){if(!agentState||agentBusy)return;agentBusy=true;agentNotice.textContent='Validating mission action…';
- try{const r=await fetch('/api/rpg/action',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({action,revision:agentState.revision})});const d=await r.json();if(!r.ok)throw Error(d.error||'Mission action failed');agentRender(d);agentNotice.textContent=d.reward?`Saved · +${d.reward.xp} XP · ${d.reward.item}`:'Progress saved';push('LinkLink',escapeHtml(d.narration));}
+ try{const r=await fetch('/api/rpg/action',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({action,revision:agentState.revision,tokenId:String(activeNFT?.tokenId||'')})});const d=await r.json();if(!r.ok)throw Error(d.error||'Mission action failed');agentRender(d);if(d.reward)loadPetProgress().catch(()=>{});agentNotice.textContent=d.reward?`Saved · +${d.reward.xp} XP · ${d.reward.item}`:'Progress saved';push('LinkLink',escapeHtml(d.narration));}
  catch(e){agentNotice.textContent=e.message;if(e.message.includes('changed'))await agentLoad();}
  finally{agentBusy=false;}
 }
@@ -1358,18 +1377,21 @@ document.getElementById('trainerReveal').onclick=async()=>{
    else throw new Error('Select a verified Cyberpet to enter Trainer.');
   }
   await setLinkMode('trainer');
+  trainingRun=null;
+  try{trainingRun=await petApi('/api/pet/training/start','POST',{tokenId:String(activeNFT.tokenId)});document.getElementById('trainerStatus').textContent='Training started · Complete the simulation to earn 20 Cyberpet XP.';}catch(err){document.getElementById('trainerStatus').textContent=err.message+' · Practice mode (no XP).';}
   document.getElementById('trainerFrame').src='/trainer/';
   push('LinkLink','Trainer artifact revealed. Use Train, Charge, Clean and Play to care for your Cyberpet.');
  }catch(e){push('LinkLink',escapeHtml(e.message));}
 };
-document.getElementById('trainerExit').onclick=()=>setLinkMode('chat');
+document.getElementById('trainerExit').onclick=()=>{trainingRun=null;setLinkMode('chat');};
 document.getElementById('trainerDiscovery').addEventListener('click',e=>{if(e.target.id==='trainerDiscovery')closeTrainerDiscovery();});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!document.getElementById('trainerDiscovery').classList.contains('hidden'))closeTrainerDiscovery();});
 window.addEventListener('message',e=>{
  if(e.origin!==window.location.origin||e.source!==document.getElementById('trainerFrame').contentWindow)return;
  if(e.data?.type==='cyberpets:trainer:complete'){
-  document.getElementById('trainerStatus').textContent='Training complete · Simulation victory';
-  push('LinkLink','Training complete! Your Cyberpet has mastered the simulation. No NFT or Agent progression was modified.');
+  const run=trainingRun;trainingRun=null;
+  if(!run||!activeNFT||String(activeNFT.tokenId)!==run.tokenId){push('LinkLink','Training simulation complete (practice mode).');return;}
+  petApi('/api/pet/training/complete','POST',{runId:run.runId,tokenId:run.tokenId}).then(d=>{renderPetProgress(d.pet);document.getElementById('trainerStatus').textContent='Training complete · +'+d.xp+' Cyberpet XP';push('LinkLink','Training completed! Your active Cyberpet earned +'+d.xp+' XP.');}).catch(err=>{document.getElementById('trainerStatus').textContent=err.message;push('LinkLink',escapeHtml('Training completed, but no XP was awarded: '+err.message));});
  }
 });
 
@@ -1426,7 +1448,7 @@ push('System','Welcome — click Connect Wallet. Chat unlocks only if your walle
   await loadAvatarMap();  
   await restoreWalletConnection();
   await restoreSession();
-  if(hasNFTAccess)agentLoad().catch(()=>{});
+  if(hasNFTAccess){agentLoad().catch(()=>{});loadPetProgress().catch(()=>{});}
   // Signing is initiated by an explicit Connect Wallet click only.
 })();
 </script>
