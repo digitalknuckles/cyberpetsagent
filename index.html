@@ -390,6 +390,43 @@ header .send{margin-left:0!important;min-height:38px}
 #agentStats,#agentInventory,#agentMission{padding:6px 0;line-height:1.5}
 #agentNotice{font-size:12px;color:#b1e8cb}
 @media(max-width:600px){header{gap:5px}header .brand{font-size:18px}header .subtitle{font-size:10px}header .send{font-size:12px;padding:7px 9px}#adventurePanel{max-height:48vh!important;margin:5px!important;padding:9px!important}#agentPanel{max-height:48vh}#advAction{min-height:42px}.composer{padding-bottom:max(8px,env(safe-area-inset-bottom))}}
+
+/* v1.3.1 unified stateful LinkLink workspace */
+.hidden{display:none!important}
+.app{max-width:1120px;height:100dvh;min-height:0}
+header{background:rgba(9,16,30,.92);border-bottom:1px solid #31435b;z-index:12;flex-shrink:0}
+.brand{font-size:20px}.subtitle{font-size:12px}
+.hub-nav{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.hub-nav button{min-height:42px;padding:8px 12px;background:#18263b;border:1px solid #3a526b;border-radius:10px;color:#d9e9ff;cursor:pointer;font-weight:650}
+.hub-nav button[aria-pressed=true]{background:linear-gradient(125deg,#087d99,#5940b7);color:white;border-color:#77c6e8}
+#gameMenuBtn{background:#29304d}
+#hubStats{display:flex;gap:12px;align-items:center;flex-wrap:wrap;padding:8px 14px;background:rgba(8,20,35,.93);border-bottom:1px solid #2c4a5a;flex-shrink:0;z-index:10}
+.hub-meter{display:flex;align-items:center;gap:7px;min-width:155px;font-size:12px}.hub-meter strong{white-space:nowrap}
+.meter-track{width:100px;height:9px;border-radius:12px;background:#304155;overflow:hidden}.meter-track>span{display:block;height:100%;background:#32c59d;width:0%;transition:width .25s}.hub-meter.xp .meter-track>span{background:#9a8cf5}
+#hubLevel{font-size:13px;font-weight:750;color:#d5f5f0}
+#workspace{flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden;position:relative;padding:10px 12px 0}
+#workspaceTitle{margin:0 0 8px;font-size:15px;font-weight:750;color:#cceaf3}
+#agentPanel,#adventurePanel{position:static!important;z-index:auto!important;margin:0!important;max-height:none!important;overflow:auto!important;flex:1;min-height:0;background:rgba(9,23,34,.93)!important;border:1px solid #355a65;border-radius:12px;padding:16px!important}
+main.chat-area{flex:1;min-height:0;padding:10px 8px 16px;overflow:auto;scrollbar-width:thin}
+#workspace [hidden],#workspace .hidden{display:none!important}
+#agentClose,#advClose{display:none!important}
+#advStory{max-height:38vh!important;overflow:auto}#advAction{min-height:42px;background:#152537;color:white;border:1px solid #55768b;border-radius:8px;padding:9px}
+#advOpen,#advCheckpoint,#advRestore,#advSend{min-height:40px;border-radius:8px;background:#203d50;color:#e8f8ff;border:1px solid #5d879b;padding:8px;cursor:pointer}
+#advList{min-height:40px;background:#1d3444;color:white;border-radius:8px}
+.composer{position:relative;flex-shrink:0;z-index:11;padding:10px 12px;background:#0b1423;border-top:1px solid #33465a}
+.pfp-overlay{top:8px;right:12px;width:54px;height:54px;z-index:15}.nft-status{top:65px;right:13px;width:52px;height:6px}.nft-selector{top:76px;right:10px}
+.avatar{width:140px;height:140px;left:calc(50% - 690px);bottom:70px;opacity:.9}
+#menuOverlay{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:50;display:flex;justify-content:center;align-items:center;padding:16px}
+#menuOverlay.hidden{display:none!important}
+#menuDialog{width:min(560px,100%);max-height:88dvh;overflow:auto;background:#111e30;border:1px solid #5c8da3;border-radius:16px;padding:18px;color:#edf7ff;box-shadow:0 15px 60px #0009}
+.menu-head{display:flex;align-items:center;justify-content:space-between;gap:8px}.menu-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:12px 0}
+.menu-grid button,.menu-head button,#menuDelete,#menuMemory{min-height:44px;background:#263a52;color:#fff;border:1px solid #5d809c;border-radius:9px;cursor:pointer;padding:8px}
+#menuSaved{width:100%;min-height:42px;background:#1b3044;color:#fff;border:1px solid #6589a4;border-radius:8px}
+#menuFeedback{font-size:13px;color:#a6e8d7;min-height:20px;margin:8px 0}
+#menuDelete{border-color:#d47a83;background:#572c3a}
+@media(max-width:900px){.avatar{display:none}.app{max-width:100%}header{padding-right:76px}}
+@media(max-width:600px){header{gap:6px;padding:8px 70px 8px 9px}.brand{font-size:17px}.subtitle{display:none}.hub-nav{width:100%;gap:4px}.hub-nav button{flex:1;font-size:12px;padding:8px 5px;min-height:42px}#connectBtn{font-size:11px;min-height:36px!important;padding:6px 8px!important}#hubStats{padding:7px 9px;gap:7px}.hub-meter{min-width:125px;gap:4px}.meter-track{width:65px}#workspace{padding:7px 6px 0}#agentPanel,#adventurePanel{padding:10px!important}#advStory{max-height:30vh!important}.composer{padding-bottom:max(9px,env(safe-area-inset-bottom))}.menu-grid{grid-template-columns:1fr}}
+
 </style>
 </head>
 <link rel="icon" href="favicon.ico" type="image/x-icon">
@@ -400,9 +437,14 @@ header .send{margin-left:0!important;min-height:38px}
     <div class="brand">Cyberpets AI</div>
     <div class="subtitle">LinkLink · Containment Protocol</div>
   </div>
-  <button id="agentBtn" class="send" type="button" title="Agent status">Agent</button>
-  <button id="adventureBtn" class="send" style="margin-left:6px" title="Open LinkLink Adventures">Missions</button>
-  <button id="memoryBtn" class="send" style="margin-left:6px" title="Collector memory settings">Memory</button>
+  <nav class="hub-nav" aria-label="LinkLink modes">
+    <button id="chatModeBtn" type="button" aria-pressed="true">Chat</button>
+    <button id="adventureBtn" type="button" aria-pressed="false">Adventure</button>
+    <button id="agentBtn" type="button" aria-pressed="false">Missions</button>
+    <button id="inventoryBtn" type="button" aria-pressed="false">Agent</button>
+    <button id="gameMenuBtn" type="button" aria-haspopup="dialog">☰ Menu</button>
+  </nav>
+  <button id="memoryBtn" type="button" class="hidden" aria-hidden="true" tabindex="-1">Memory</button>
   <button id="connectBtn" class="send blink" style="margin-left:auto">Connect Wallet</button>
 </header>
 
@@ -417,6 +459,12 @@ header .send{margin-left:0!important;min-height:38px}
 <div class="nft-status"><div id="nftStatusFill" class="nft-status-fill"></div></div>
 
 
+<div id="hubStats" aria-label="Agent progress">
+ <span id="hubLevel">Agent · Sign in</span>
+ <div class="hub-meter"><strong>HP</strong><div class="meter-track"><span id="hubHpBar"></span></div><span id="hubHpText">—</span></div>
+ <div class="hub-meter xp"><strong>XP</strong><div class="meter-track"><span id="hubXpBar"></span></div><span id="hubXpText">—</span></div>
+</div>
+<div id="workspace"><div id="workspaceTitle">LinkLink · Companion Chat</div>
 <section id="agentPanel" class="hidden" aria-label="Containment Agent status">
   <div class="agent-heading"><strong>Containment Agent</strong><button id="agentClose" type="button">Close</button></div>
   <div id="agentStats" aria-live="polite">Authenticate your wallet to load agent progress.</div>
@@ -439,6 +487,20 @@ header .send{margin-left:0!important;min-height:38px}
   <div class="messages" id="messages"></div>
 </main>
 
+</div>
+<div id="menuOverlay" class="hidden" role="presentation"><div id="menuDialog" role="dialog" aria-modal="true" aria-labelledby="menuTitle" tabindex="-1">
+ <div class="menu-head"><h2 id="menuTitle">LinkLink · Game Menu</h2><button id="menuClose" type="button">Close</button></div>
+ <p>Choose a mode or manage saved adventures. Wallet-owned NFT metadata is never changed by these controls.</p>
+ <div class="menu-grid"><button data-mode="chat">Companion Chat</button><button data-mode="adventure">Freeform Adventure</button><button data-mode="missions">Containment Missions</button><button data-mode="agent">Agent & Inventory</button></div>
+ <h3>Saved adventures</h3><select id="menuSaved" aria-label="Choose saved adventure"><option value="">Select a save</option></select>
+ <div class="menu-grid"><button id="menuRefresh">Refresh saves</button><button id="menuLoad">Load selected</button><button id="menuCheckpoint">Create checkpoint</button><button id="menuRestore">Restore checkpoint</button><button id="menuDelete">Delete selected save</button><button id="menuMemory">Manage Collector Memory</button></div>
+ <label><input type="checkbox" id="menuConfirm"> I understand deleting a save permanently removes its checkpoints.</label>
+ <h3>Settings & local cache</h3>
+ <label><input id="menuCompact" type="checkbox"> Compact chat text</label>
+ <div class="menu-grid"><button id="menuClearChat">Clear on-screen conversation</button><button id="menuClearCache">Clear LinkLink UI preferences</button></div>
+ <p id="menuFeedback" role="status" aria-live="polite"></p>
+ <small>Agent XP, HP and mission history are server-authoritative. This menu does not reset RPG progression or delete NFT metadata.</small>
+</div></div>
 <div class="composer">
   <input id="input" class="input" disabled placeholder="Ask Your CyberpetAi Anything..." />
   <button id="send" class="send" disabled>Send</button>
@@ -823,6 +885,7 @@ async function connectWallet(){
   connectBtn.disabled = true;
   try {
     await authenticateAndFetchNFT();
+    agentLoad().catch(()=>{});
     connectBtn.classList.remove('blink');
     connectBtn.textContent = `Authenticated: ${userAddress.slice(0,6)}...${userAddress.slice(-4)}`;
   } catch (err) {
@@ -962,11 +1025,8 @@ async function advRefresh(){
  list.forEach(a=>el.add(new Option(`#${a.tokenId} · ${a.title}`,a.id)));
  if(adventure)el.value=adventure.id;
 }
-document.getElementById('adventureBtn').onclick=async()=>{
- agentPanel.classList.add('hidden');advPanel.classList.remove('hidden');advStatus('Loading adventures...');
- try{await advRefresh();advStatus('Choose a saved adventure or start a new one.');}catch(e){advStatus(e.message);}
-};
-document.getElementById('advClose').onclick=()=>advPanel.classList.add('hidden');
+
+document.getElementById('advClose').onclick=()=>setLinkMode('chat');
 document.getElementById('advOpen').onclick=async()=>{
  try{
   const id=document.getElementById('advList').value;
@@ -1015,7 +1075,7 @@ document.getElementById('advRestore').onclick=async()=>{
 let agentState=null,agentBusy=false;
 const agentPanel=document.getElementById('agentPanel');
 const agentNotice=document.getElementById('agentNotice');
-function agentRender(data){agentState=data;const p=data.player;
+function agentRender(data){agentState=data;const p=data.player;updateHub(p);
  document.getElementById('agentStats').textContent=`Level ${p.level} · HP ${p.hp}/${p.maxHp} · XP ${p.xp}/${p.level*100}`;
  document.getElementById('agentInventory').textContent='Inventory: '+(p.inventory.join(' · ')||'Empty');
  document.getElementById('agentMission').textContent=data.mission?`${data.mission.title} — ${data.mission.scene}`:'Introductory containment campaign completed.';
@@ -1028,12 +1088,13 @@ async function agentAct(action){if(!agentState||agentBusy)return;agentBusy=true;
  catch(e){agentNotice.textContent=e.message;if(e.message.includes('changed'))await agentLoad();}
  finally{agentBusy=false;}
 }
-document.getElementById('agentBtn').onclick=async()=>{agentPanel.classList.remove('hidden');advPanel.classList.add('hidden');try{await agentLoad();agentNotice.textContent='Agent progress saved to your wallet profile.';}catch(e){agentNotice.textContent=e.message;}};
-document.getElementById('agentClose').onclick=()=>agentPanel.classList.add('hidden');
+
+document.getElementById('agentClose').onclick=()=>setLinkMode('chat');
 /* ---------------- CHAT ---------------- */
 async function sendMessage(){
   const t=inputEl.value.trim();
   if(!t) return;
+  if(linkNavigation(t)){inputEl.value='';return;}
 
   updateFloatingAvatar(activeNFT?.tokenId);
 
@@ -1147,6 +1208,90 @@ function push(who, text){
 }
 */
 
+/* ---------------- UNIFIED LINKLINK HUB ---------------- */
+let linkMode='chat';
+const hubTitles={chat:'LinkLink · Companion Chat',adventure:'LinkLink · Freeform Adventure',missions:'LinkLink · Containment Missions',agent:'LinkLink · Agent & Inventory'};
+function updateHub(p){
+ if(!p)return;
+ const max=Math.max(1,Number(p.maxHp)||1),level=Math.max(1,Number(p.level)||1),xpGoal=level*100;
+ document.getElementById('hubLevel').textContent=`Agent · Lv ${level}`;
+ document.getElementById('hubHpBar').style.width=`${Math.max(0,Math.min(100,100*p.hp/max))}%`;
+ document.getElementById('hubXpBar').style.width=`${Math.max(0,Math.min(100,100*p.xp/xpGoal))}%`;
+ document.getElementById('hubHpText').textContent=`${p.hp}/${max}`;
+ document.getElementById('hubXpText').textContent=`${p.xp}/${xpGoal}`;
+}
+async function setLinkMode(mode){
+ if(!hubTitles[mode])return;
+ linkMode=mode;
+ document.getElementById('workspaceTitle').textContent=hubTitles[mode];
+ agentPanel.classList.toggle('hidden',!['missions','agent'].includes(mode));
+ advPanel.classList.toggle('hidden',mode!=='adventure');
+ document.querySelector('main.chat-area').classList.toggle('hidden',mode!=='chat');
+ for(const [id,m] of [['chatModeBtn','chat'],['adventureBtn','adventure'],['agentBtn','missions'],['inventoryBtn','agent']])document.getElementById(id).setAttribute('aria-pressed',String(mode===m));
+ closeGameMenu();
+ if(mode==='adventure'){try{await advRefresh();advStatus('Select an adventure, or create a new one.');}catch(e){advStatus(e.message);}}
+ if(mode==='missions'||mode==='agent'){try{await agentLoad();agentNotice.textContent='Wallet-linked agent progress loaded.';}catch(e){agentNotice.textContent=e.message;}}
+}
+function menuStatus(message){document.getElementById('menuFeedback').textContent=message;}
+function closeGameMenu(){document.getElementById('menuOverlay').classList.add('hidden');document.getElementById('gameMenuBtn').focus();}
+async function refreshMenuSaves(){
+ const saves=await advRequest('/api/adventures');const select=document.getElementById('menuSaved');select.replaceChildren(new Option('Select a save',''));
+ for(const a of saves)select.add(new Option(`${a.title} · Cyberpet #${a.tokenId} · ${new Date(a.updatedAt).toLocaleDateString()}`,a.id));
+ menuStatus(`${saves.length} saved adventure(s).`);
+}
+async function openGameMenu(){document.getElementById('menuOverlay').classList.remove('hidden');document.getElementById('menuDialog').focus();try{await refreshMenuSaves();}catch(e){menuStatus(e.message);}}
+const menuSafe=fn=>async()=>{try{await fn();}catch(e){menuStatus(e.message||'Operation failed');}};
+document.getElementById('chatModeBtn').onclick=()=>setLinkMode('chat');
+document.getElementById('adventureBtn').onclick=()=>setLinkMode('adventure');
+document.getElementById('agentBtn').onclick=()=>setLinkMode('missions');
+document.getElementById('inventoryBtn').onclick=()=>setLinkMode('agent');
+document.getElementById('gameMenuBtn').onclick=openGameMenu;
+document.getElementById('menuClose').onclick=closeGameMenu;
+document.getElementById('menuOverlay').addEventListener('click',e=>{if(e.target.id==='menuOverlay')closeGameMenu();});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!document.getElementById('menuOverlay').classList.contains('hidden'))closeGameMenu();});
+for(const button of document.querySelectorAll('#menuDialog [data-mode]'))button.onclick=()=>setLinkMode(button.dataset.mode);
+document.getElementById('menuRefresh').onclick=menuSafe(refreshMenuSaves);
+document.getElementById('menuLoad').onclick=menuSafe(async()=>{
+ const id=document.getElementById('menuSaved').value;if(!id)throw Error('Select a saved adventure first.');
+ await setLinkMode('adventure');document.getElementById('advList').value=id;document.getElementById('advOpen').click();
+});
+document.getElementById('menuCheckpoint').onclick=menuSafe(async()=>{
+ if(!adventure)throw Error('Load an adventure before creating a checkpoint.');
+ closeGameMenu();document.getElementById('advCheckpoint').click();
+});
+document.getElementById('menuRestore').onclick=menuSafe(async()=>{
+ if(!adventure)throw Error('Load an adventure before restoring a checkpoint.');
+ closeGameMenu();document.getElementById('advRestore').click();
+});
+document.getElementById('menuDelete').onclick=menuSafe(async()=>{
+ const id=document.getElementById('menuSaved').value;
+ if(!id)throw Error('Select the save you want to delete.');
+ if(!document.getElementById('menuConfirm').checked)throw Error('Check the deletion acknowledgement first.');
+ const label=document.getElementById('menuSaved').selectedOptions[0].textContent;
+ if(!confirm(`Permanently delete ${label} and all its checkpoints? This cannot be undone.`))return;
+ await advRequest('/api/adventures/'+encodeURIComponent(id),'DELETE');
+ if(adventure?.id===id){adventure=null;advDraft=null;document.getElementById('advStory').textContent='';advRender();}
+ document.getElementById('menuConfirm').checked=false;await refreshMenuSaves();menuStatus('Adventure and checkpoints permanently deleted. NFT metadata and RPG progress unchanged.');
+});
+document.getElementById('menuMemory').onclick=()=>{closeGameMenu();document.getElementById('memoryBtn').click();};
+document.getElementById('menuClearChat').onclick=()=>{
+ if(confirm('Clear messages from this browser view? This does not delete Collector Memory or server-side saves.')){messages.replaceChildren();menuStatus('On-screen conversation cleared.');}
+};
+document.getElementById('menuCompact').checked=localStorage.getItem('linklink:compact')==='1';
+function applyCompact(){document.querySelectorAll('.msg').forEach(e=>e.style.fontSize=document.getElementById('menuCompact').checked?'13px':'');}
+document.getElementById('menuCompact').onchange=e=>{localStorage.setItem('linklink:compact',e.target.checked?'1':'0');applyCompact();menuStatus('Display preference saved locally.');};
+document.getElementById('menuClearCache').onclick=()=>{
+ if(!confirm('Clear LinkLink display preferences? This will NOT erase NFT selection, ownership, Collector Memory, or saved adventures.'))return;
+ localStorage.removeItem('linklink:compact');document.getElementById('menuCompact').checked=false;applyCompact();menuStatus('LinkLink display preferences cleared.');
+};
+/* Local navigation commands are deterministic and do not invoke AI or modify gameplay. */
+function linkNavigation(text){
+ const t=text.trim().toLowerCase().replace(/[.!?]+$/,'');
+ const commands=[[/^(?:linklink[, ]+)?(?:open|show|go to|switch to) (?:the )?(?:game )?menu$/,()=>openGameMenu(),'Opening the game menu.'],[/^(?:linklink[, ]+)?(?:open|show|switch to) (?:the )?(?:agent|inventory|stats)$/,()=>setLinkMode('agent'),'Opening Agent & Inventory.'],[/^(?:linklink[, ]+)?(?:open|show|switch to) (?:the )?(?:missions|mission board)$/,()=>setLinkMode('missions'),'Opening Containment Missions.'],[/^(?:linklink[, ]+)?(?:open|show|switch to) (?:the )?(?:adventure|adventures)$/,()=>setLinkMode('adventure'),'Opening Freeform Adventure.'],[/^(?:linklink[, ]+)?(?:open|show|switch to) (?:the )?(?:chat|companion chat)$/,()=>setLinkMode('chat'),'Opening Companion Chat.']];
+ for(const [regex,action,reply] of commands)if(regex.test(t)){action();push('LinkLink',escapeHtml(reply));return true;}
+ return false;
+}
+
 /* ---------------- INIT ------------------------------------------------------------------------------------------------------ */
 async function loadRarityTable() {
   try {
@@ -1200,6 +1345,7 @@ push('System','Welcome — click Connect Wallet. Chat unlocks only if your walle
   await loadAvatarMap();  
   await restoreWalletConnection();
   await restoreSession();
+  if(hasNFTAccess)agentLoad().catch(()=>{});
   // Signing is initiated by an explicit Connect Wallet click only.
 })();
 </script>
