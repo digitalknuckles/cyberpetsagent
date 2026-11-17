@@ -463,6 +463,48 @@ header{padding-right:132px!important}
 /* Message portraits stay inside each bubble instead of escaping their boundaries. */
 .msg{box-sizing:border-box;min-width:0;overflow-wrap:anywhere;overflow:hidden}
 .msg-avatar{max-width:48px!important;max-height:48px!important;width:48px!important;height:48px!important;object-fit:contain;float:left;margin:0 10px 6px 0;position:static!important}
+
+/* v1.3.5 fluid responsive LinkLink shell: 4 / 8 / 12-column breakpoints */
+:root{--layout-gap:clamp(8px,1.4vw,18px)}
+html,body{width:100%;max-width:100%;overflow:hidden}
+.app{width:100%;max-width:min(100%,1440px);height:100dvh;min-height:0;overflow:hidden}
+header{display:flex;flex-wrap:wrap;gap:var(--layout-gap);align-items:center;min-width:0}
+.hub-nav{min-width:0;max-width:100%;display:flex;flex-wrap:wrap;gap:8px}
+.hub-nav button{min-height:44px}
+#hubStats,#petProgress{min-width:0;row-gap:8px}
+#workspace{min-width:0;min-height:0;flex:1;overflow:hidden;padding:clamp(6px,1vw,14px)}
+#trainerPanel{flex:1;min-height:0;overflow:hidden;padding:clamp(4px,.8vw,10px);gap:6px}
+#trainerFrame{display:block;flex:1 1 0;min-height:0!important;height:100%;width:100%;border-radius:10px}
+.trainer-toolbar{flex:0 0 auto;min-width:0;gap:8px}
+.trainer-toolbar strong{margin-right:0}
+.trainer-toolbar #trainerStatus{flex:1;min-width:140px;overflow-wrap:anywhere}
+#agentPanel,#adventurePanel{min-width:0;max-width:100%;overflow:auto}
+#advStory{max-height:min(38vh,360px)!important}
+#avatar.avatar{display:none!important} /* response-bubble avatar replaces floating art */
+.msg{max-width:100%;overflow-wrap:anywhere}
+.msg-avatar{max-width:48px;height:48px;object-fit:contain}
+.pfp-overlay{width:clamp(56px,7vw,88px)!important;height:clamp(56px,7vw,88px)!important;right:10px!important;top:8px!important}
+.nft-status{width:clamp(54px,7vw,86px)!important;top:calc(14px + clamp(56px,7vw,88px))!important;right:11px!important}
+header{padding-right:clamp(82px,10vw,110px)!important}
+@media(max-width:1199px){.app{max-width:100%}header{padding:9px clamp(8px,2vw,18px)}.hub-nav{width:100%;order:3}.hub-nav button{flex:1 1 auto}.brand{font-size:18px}#workspaceTitle{font-size:13px}}
+@media(max-width:700px){
+ .app{width:100%;max-width:100%}header{padding:8px 76px 8px 10px!important;gap:7px}
+ .hub-nav{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:4px;width:100%;order:3}
+ .hub-nav button{min-width:0;min-height:44px;padding:7px 2px;font-size:clamp(10px,2.3vw,12px);overflow-wrap:anywhere}
+ .brand{font-size:16px}.subtitle{display:none}#connectBtn{min-height:38px!important;font-size:11px;max-width:130px}
+ .pfp-overlay{width:60px!important;height:60px!important;right:8px!important;top:8px!important}.nft-status{top:70px!important;right:9px!important;width:58px!important}
+ #hubStats{gap:6px;padding:6px 9px}#hubLevel{font-size:11px}.hub-meter{min-width:0;font-size:11px;gap:4px}.meter-track{width:clamp(36px,12vw,64px)}
+ #petProgress{padding:6px 9px;gap:5px;font-size:11px}#petCombatStats{width:100%}
+ #workspace{padding:5px 5px 0}#workspaceTitle{margin-bottom:4px}
+ #trainerPanel{padding:3px;gap:4px}.trainer-toolbar{gap:5px;font-size:11px}.trainer-toolbar strong{font-size:12px}.trainer-toolbar button{min-height:36px;padding:5px 8px;font-size:11px}
+ #trainerFrame{border-radius:6px}
+ .composer{padding:8px 9px max(8px,env(safe-area-inset-bottom))}
+ #agentPanel,#adventurePanel{padding:10px!important}
+ .menu-grid{grid-template-columns:1fr}
+}
+@media(max-width:500px){.hub-nav{grid-template-columns:repeat(5,minmax(0,1fr))}#trainerStatus{font-size:10px;flex-basis:100%}.trainer-toolbar strong{flex:1}#petProgress .pet-meter>span{width:54px}#petProgress .pet-meter small{min-width:32px}}
+@media(min-width:701px) and (max-width:1199px){.app{display:flex}#workspace{padding:10px 14px}#trainerPanel{padding:8px}.hub-nav{display:grid;grid-template-columns:repeat(5,minmax(0,1fr))}}
+@media(min-width:1200px){.app{max-width:1440px}#workspace{padding:12px 18px}.hub-nav{flex-wrap:nowrap}}
 </style>
 </head>
 <link rel="icon" href="favicon.ico" type="image/x-icon">
