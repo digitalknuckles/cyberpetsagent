@@ -505,6 +505,29 @@ header{padding-right:clamp(82px,10vw,110px)!important}
 @media(max-width:500px){.hub-nav{grid-template-columns:repeat(5,minmax(0,1fr))}#trainerStatus{font-size:10px;flex-basis:100%}.trainer-toolbar strong{flex:1}#petProgress .pet-meter>span{width:54px}#petProgress .pet-meter small{min-width:32px}}
 @media(min-width:701px) and (max-width:1199px){.app{display:flex}#workspace{padding:10px 14px}#trainerPanel{padding:8px}.hub-nav{display:grid;grid-template-columns:repeat(5,minmax(0,1fr))}}
 @media(min-width:1200px){.app{max-width:1440px}#workspace{padding:12px 18px}.hub-nav{flex-wrap:nowrap}}
+
+/* v1.3.6 desktop conversation lane and per-response animated Cyberpet */
+:root{--chat-lane:720px;--desktop-game-lane:700px}
+main.chat-area{background:linear-gradient(155deg,rgba(22,35,55,.78),rgba(8,19,32,.9));border:1px solid rgba(109,145,176,.17);border-radius:16px}
+.messages{width:100%;gap:14px;align-items:stretch}
+.msg{position:relative;max-width:min(80%,560px);width:max-content;min-width:0;overflow:visible!important;padding:12px 16px;border-radius:16px;line-height:1.5;box-shadow:0 5px 16px rgba(0,0,0,.13)}
+.msg.ai{align-self:flex-start;margin-left:44px;background:#203247;border:1px solid #3a5368;border-bottom-left-radius:5px}
+.msg.user{align-self:flex-end;margin-right:0;background:linear-gradient(125deg,#513f9a,#246e93);border-bottom-right-radius:5px}
+.response-avatar{position:absolute;display:block;width:60px;height:84px;left:-45px;bottom:0;overflow:hidden;pointer-events:none;z-index:2}
+.response-avatar img{position:absolute;width:110px;height:110px;max-width:none;object-fit:contain;right:-49px;bottom:-13px;transform-origin:65% 90%;animation:pet-response 1.8s ease-in-out infinite alternate;filter:drop-shadow(0 4px 6px rgba(0,0,0,.4))}
+.response-avatar.thinking img{animation:pet-thinking .65s ease-in-out infinite alternate}
+@keyframes pet-response{from{transform:translateY(2px) rotate(-3deg)}to{transform:translateY(-5px) rotate(3deg)}}
+@keyframes pet-thinking{from{transform:translateY(3px) scale(.97)}to{transform:translateY(-7px) scale(1.04)}}
+@media(prefers-reduced-motion:reduce){.response-avatar img{animation:none!important}}
+@media(min-width:1200px){
+  main.chat-area{width:min(50%,var(--chat-lane));max-width:var(--chat-lane);align-self:center;flex:none;min-height:0;flex-grow:1;padding:20px 20px 24px 24px}
+  .composer{width:min(50%,var(--chat-lane));max-width:var(--chat-lane);align-self:center;border:1px solid #33465a;border-radius:0 0 14px 14px}
+  #trainerPanel,#adventurePanel,#agentPanel{width:min(50%,var(--desktop-game-lane));max-width:var(--desktop-game-lane);align-self:center}
+  #workspace{align-items:stretch}
+  #workspaceTitle{width:min(50%,var(--chat-lane));align-self:center}
+}
+@media(max-width:1199px){main.chat-area{width:100%;flex:1;min-height:0}.msg{max-width:82%}.response-avatar{left:-39px;width:53px}.msg.ai{margin-left:39px}}
+@media(max-width:500px){main.chat-area{padding:10px 10px 16px}.msg{max-width:85%;font-size:14px;padding:10px 12px}.msg.ai{margin-left:33px}.response-avatar{left:-34px;width:46px;height:67px}.response-avatar img{width:88px;height:88px;right:-39px;bottom:-10px}}
 </style>
 </head>
 <link rel="icon" href="favicon.ico" type="image/x-icon">
@@ -657,12 +680,30 @@ function escapeHtml(u=''){
 }
 
 // Keep the large desktop avatar inside its own decorative rail, never over chat or games.
+function currentChatAvatarUrl(){
+  const token = activeNFT?.tokenId;
+  if(token !== undefined && token !== null){
+    const resolved = resolveAvatarUrlFromToken(token);
+    if(typeof resolved === 'string' && resolved.trim()) return resolved;
+  }
+  return (typeof activeNFT?.image === 'string' && activeNFT.image) ? resolveNFTImage(activeNFT) : DEFAULT_PFP;
+}
 function bindAvatarTo(el){
-  if(!avatar) return;
-  avatar.style.left='';
-  avatar.style.top='';
-  avatar.style.position='';
-  avatar.style.zIndex='';
+  if(!el || !el.classList.contains('ai')) return;
+  let portrait = el.querySelector('.response-avatar');
+  if(!portrait){
+    portrait = document.createElement('span');
+    portrait.className='response-avatar';
+    const img=document.createElement('img');
+    img.alt='Active Cyberpet';
+    img.loading='lazy';
+    img.onerror=()=>{ if(img.src !== new URL(DEFAULT_PFP,location.href).href) img.src=DEFAULT_PFP; };
+    portrait.appendChild(img);
+    el.prepend(portrait);
+  }
+  portrait.querySelector('img').src=currentChatAvatarUrl();
+  portrait.classList.toggle('thinking',!!el.querySelector('.loading-spinner'));
+  portrait.classList.toggle('responding',!el.querySelector('.loading-spinner'));
 }
 
 function updateFloatingAvatar(tokenId){
@@ -700,8 +741,8 @@ function push(who, text){
   messages.appendChild(m);
   scrollBottom();
 
-  if(who !== 'User' && avatar){
-    requestAnimationFrame(()=>bindAvatarTo(m));
+  if(who !== 'User'){
+    bindAvatarTo(m);
   }
   return m;
 }
@@ -1262,11 +1303,12 @@ pfpImg.src = url;
     // ---------------- END PATCH ----------------
 
     p.innerHTML = `<div class="meta">AI</div>${escapeHtml(d.text || 'No response')}`;
-    requestAnimationFrame(() => bindAvatarTo(p));
+    bindAvatarTo(p);
     incrementNFTStatus();
   } catch(err){
     console.error(err);
     p.innerHTML = '<div class="meta">AI</div>Error contacting AI backend.';
+    bindAvatarTo(p);
   } finally {
     sendBtn.disabled = false;
     if(avatar) avatar.classList.remove('typing');
