@@ -377,6 +377,19 @@ main.chat-area{
   opacity:.85;
 }
 
+
+/* v1.3 compact responsive UI: one LinkLink conversation, expandable tool panels */
+header{display:flex;align-items:center;flex-wrap:wrap;gap:6px;padding:10px 12px}
+header .send{margin-left:0!important;min-height:38px}
+#connectBtn{margin-left:auto!important;max-width:100%;overflow:hidden;text-overflow:ellipsis}
+#agentPanel{margin:8px;padding:12px;border:1px solid #376a64;background:#10242a;border-radius:12px;color:#e5f7f0;max-height:50vh;overflow:auto;position:relative;z-index:5}
+.agent-heading{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.agent-choices{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}
+.agent-choices button,#agentClose{min-height:42px;padding:8px 12px;border:1px solid #55a89b;border-radius:8px;background:#183b3d;color:#f3fff8;cursor:pointer}
+.agent-choices button:disabled{opacity:.5}
+#agentStats,#agentInventory,#agentMission{padding:6px 0;line-height:1.5}
+#agentNotice{font-size:12px;color:#b1e8cb}
+@media(max-width:600px){header{gap:5px}header .brand{font-size:18px}header .subtitle{font-size:10px}header .send{font-size:12px;padding:7px 9px}#adventurePanel{max-height:48vh!important;margin:5px!important;padding:9px!important}#agentPanel{max-height:48vh}#advAction{min-height:42px}.composer{padding-bottom:max(8px,env(safe-area-inset-bottom))}}
 </style>
 </head>
 <link rel="icon" href="favicon.ico" type="image/x-icon">
@@ -385,9 +398,10 @@ main.chat-area{
 <header>
   <div>
     <div class="brand">Cyberpets AI</div>
-    <div class="subtitle">NFT-gated assistant</div>
+    <div class="subtitle">LinkLink · Containment Protocol</div>
   </div>
-  <button id="adventureBtn" class="send" style="margin-left:6px" title="Open LinkLink Adventures">Adventure</button>
+  <button id="agentBtn" class="send" type="button" title="Agent status">Agent</button>
+  <button id="adventureBtn" class="send" style="margin-left:6px" title="Open LinkLink Adventures">Missions</button>
   <button id="memoryBtn" class="send" style="margin-left:6px" title="Collector memory settings">Memory</button>
   <button id="connectBtn" class="send blink" style="margin-left:auto">Connect Wallet</button>
 </header>
@@ -403,19 +417,25 @@ main.chat-area{
 <div class="nft-status"><div id="nftStatusFill" class="nft-status-fill"></div></div>
 
 
+<section id="agentPanel" class="hidden" aria-label="Containment Agent status">
+  <div class="agent-heading"><strong>Containment Agent</strong><button id="agentClose" type="button">Close</button></div>
+  <div id="agentStats" aria-live="polite">Authenticate your wallet to load agent progress.</div>
+  <div id="agentMission"></div><div id="agentChoices" class="agent-choices"></div>
+  <div id="agentInventory"></div><div id="agentNotice" role="status"></div>
+</section>
 <section id="adventurePanel" class="hidden" style="padding:12px;max-height:75vh;overflow:auto;background:#101820;color:#e9f5ee;border:1px solid #2c6155;border-radius:12px;margin:8px;position:relative;z-index:5">
- <h3 style="margin:4px 0">LinkLink Adventures <small style="font-weight:normal">· RPG Mode</small></h3>
+ <h3 style="margin:4px 0">LinkLink · Freeform Adventure <small style="font-weight:normal">· RPG Mode</small></h3>
  <div style="display:flex;flex-wrap:wrap;gap:7px;align-items:center;margin-bottom:8px">
   <select id="advList" aria-label="Saved adventures" style="max-width:180px"><option value="">New adventure</option></select>
   <button id="advOpen">Load / Start</button><button id="advCheckpoint">Checkpoint</button><button id="advRestore">Restore</button>
-  <label><input type="checkbox" id="advSave" checked> Save progress</label><button id="advClose">Companion Chat</button>
+  <label><input type="checkbox" id="advSave" checked> Save progress</label><button id="advClose">Close adventure</button>
  </div>
  <div id="advStatus" style="font-size:12px;color:#a9c7b9">Connect a wallet to begin.</div>
  <pre id="advState" style="white-space:pre-wrap;font-size:12px;max-height:110px;overflow:auto"></pre>
  <div id="advStory" role="log" aria-live="polite" style="white-space:pre-wrap;max-height:35vh;overflow:auto;padding:10px;background:#192b31;border-radius:8px;margin:8px 0"></div>
  <div style="display:flex;gap:6px"><input id="advAction" maxlength="1200" placeholder="What do you do?" style="flex:1;min-width:0"><button id="advSend">Act</button></div>
  </section>
-<main class="chat-area">
+<main class="chat-area" aria-label="LinkLink conversation">
   <div class="messages" id="messages"></div>
 </main>
 
@@ -943,7 +963,7 @@ async function advRefresh(){
  if(adventure)el.value=adventure.id;
 }
 document.getElementById('adventureBtn').onclick=async()=>{
- advPanel.classList.remove('hidden');advStatus('Loading adventures...');
+ agentPanel.classList.add('hidden');advPanel.classList.remove('hidden');advStatus('Loading adventures...');
  try{await advRefresh();advStatus('Choose a saved adventure or start a new one.');}catch(e){advStatus(e.message);}
 };
 document.getElementById('advClose').onclick=()=>advPanel.classList.add('hidden');
@@ -970,6 +990,7 @@ document.getElementById('advSend').onclick=async()=>{
   const result=await advRequest('/api/adventures/'+adventure.id+'/turn','POST',{action,save,revision:adventure.revision,...(!save&&advDraft?{draft:advDraft}:{})});
   if(save){adventure={...adventure,...result};}else{advDraft={state:result.state,recent:result.recent};}
   document.getElementById('advStory').textContent+=`\n\nYOU: ${action}\n\nLINKLINK: ${result.narration}`;
+  push('User',escapeHtml(action));push('LinkLink',escapeHtml(result.narration));
   input.value='';advRender();advStatus(save?'Progress saved':'Temporary branch — not saved');
  }catch(e){advStatus(e.message);}finally{advBusy=false;document.getElementById('advSend').disabled=false;}
 };
@@ -990,6 +1011,25 @@ document.getElementById('advRestore').onclick=async()=>{
   document.getElementById('advStory').textContent='Checkpoint restored. '+data.state.scene;advRender();advStatus('Checkpoint restored.');
  }catch(e){advStatus(e.message);}
 };
+/* ---------------- LINKLINK V1.3 AGENT ---------------- */
+let agentState=null,agentBusy=false;
+const agentPanel=document.getElementById('agentPanel');
+const agentNotice=document.getElementById('agentNotice');
+function agentRender(data){agentState=data;const p=data.player;
+ document.getElementById('agentStats').textContent=`Level ${p.level} · HP ${p.hp}/${p.maxHp} · XP ${p.xp}/${p.level*100}`;
+ document.getElementById('agentInventory').textContent='Inventory: '+(p.inventory.join(' · ')||'Empty');
+ document.getElementById('agentMission').textContent=data.mission?`${data.mission.title} — ${data.mission.scene}`:'Introductory containment campaign completed.';
+ const choices=document.getElementById('agentChoices');choices.replaceChildren();
+ for(const choice of data.mission?.choices||[]){const b=document.createElement('button');b.type='button';b.textContent=choice.label;b.disabled=agentBusy;b.onclick=()=>agentAct(choice.id);choices.appendChild(b);}
+}
+async function agentLoad(){const r=await fetch('/api/rpg',{credentials:'include'});const d=await r.json();if(!r.ok)throw Error(d.error||'Unable to load agent');agentRender(d);}
+async function agentAct(action){if(!agentState||agentBusy)return;agentBusy=true;agentNotice.textContent='Validating mission action…';
+ try{const r=await fetch('/api/rpg/action',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({action,revision:agentState.revision})});const d=await r.json();if(!r.ok)throw Error(d.error||'Mission action failed');agentRender(d);agentNotice.textContent=d.reward?`Saved · +${d.reward.xp} XP · ${d.reward.item}`:'Progress saved';push('LinkLink',escapeHtml(d.narration));}
+ catch(e){agentNotice.textContent=e.message;if(e.message.includes('changed'))await agentLoad();}
+ finally{agentBusy=false;}
+}
+document.getElementById('agentBtn').onclick=async()=>{agentPanel.classList.remove('hidden');advPanel.classList.add('hidden');try{await agentLoad();agentNotice.textContent='Agent progress saved to your wallet profile.';}catch(e){agentNotice.textContent=e.message;}};
+document.getElementById('agentClose').onclick=()=>agentPanel.classList.add('hidden');
 /* ---------------- CHAT ---------------- */
 async function sendMessage(){
   const t=inputEl.value.trim();

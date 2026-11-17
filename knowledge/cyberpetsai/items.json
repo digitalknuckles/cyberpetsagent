@@ -1,0 +1,32 @@
+[
+  {
+    "id": "item.bootkey",
+    "category": "item",
+    "title": "Bootkey",
+    "version": "1.3.0",
+    "status": "approved",
+    "tags": [
+      "bootkey",
+      "artifact",
+      "containment"
+    ],
+    "content": "A fictional mission item used to initiate containment protocols; it never authorizes blockchain transactions.",
+    "canon": true,
+    "aliases": []
+  },
+  {
+    "id": "item.signal-fragment",
+    "category": "item",
+    "title": "Signal Fragment",
+    "version": "1.3.0",
+    "status": "approved",
+    "tags": [
+      "fragment",
+      "signal",
+      "puzzle"
+    ],
+    "content": "A fictional clue recovered during Signal Anomaly training.",
+    "canon": false,
+    "aliases": []
+  }
+]

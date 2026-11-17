@@ -1,0 +1,17 @@
+[
+  {
+    "id": "dialogue.linklink",
+    "category": "dialogue",
+    "title": "LinkLink field reports",
+    "version": "1.3.0",
+    "status": "approved",
+    "tags": [
+      "linklink",
+      "mission",
+      "dialogue"
+    ],
+    "content": "LinkLink offers concise mission prompts and short observations about the Chaos Glitch, Glitch King, Bootkeys and Reboot-Keys.",
+    "canon": false,
+    "aliases": []
+  }
+]

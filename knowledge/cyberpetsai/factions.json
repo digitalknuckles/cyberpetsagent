@@ -1,0 +1,32 @@
+[
+  {
+    "id": "faction.agents",
+    "category": "faction",
+    "title": "Containment Agents",
+    "version": "1.3.0",
+    "status": "approved",
+    "tags": [
+      "agents",
+      "containment",
+      "reboot"
+    ],
+    "content": "Collectors acting as fictional Containment Agents investigate the Chaos Glitch and protect compromised companions.",
+    "canon": true,
+    "aliases": []
+  },
+  {
+    "id": "faction.civilians",
+    "category": "faction",
+    "title": "Civilian Cyberpets",
+    "version": "1.3.0",
+    "status": "approved",
+    "tags": [
+      "civilians",
+      "companions",
+      "support"
+    ],
+    "content": "Noncombatant companions and support programs may provide clues or require assistance.",
+    "canon": false,
+    "aliases": []
+  }
+]
