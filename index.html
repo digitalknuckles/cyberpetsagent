@@ -427,6 +427,20 @@ main.chat-area{flex:1;min-height:0;padding:10px 8px 16px;overflow:auto;scrollbar
 @media(max-width:900px){.avatar{display:none}.app{max-width:100%}header{padding-right:76px}}
 @media(max-width:600px){header{gap:6px;padding:8px 70px 8px 9px}.brand{font-size:17px}.subtitle{display:none}.hub-nav{width:100%;gap:4px}.hub-nav button{flex:1;font-size:12px;padding:8px 5px;min-height:42px}#connectBtn{font-size:11px;min-height:36px!important;padding:6px 8px!important}#hubStats{padding:7px 9px;gap:7px}.hub-meter{min-width:125px;gap:4px}.meter-track{width:65px}#workspace{padding:7px 6px 0}#agentPanel,#adventurePanel{padding:10px!important}#advStory{max-height:30vh!important}.composer{padding-bottom:max(9px,env(safe-area-inset-bottom))}.menu-grid{grid-template-columns:1fr}}
 
+
+/* Trainer discovery overlay: contained in the existing LinkLink workspace */
+#trainerPanel{height:100%;min-height:0;display:flex;flex-direction:column;gap:8px;padding:10px;background:#101b28}
+#trainerPanel.hidden{display:none}
+.trainer-toolbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;color:#e7f8ff}
+.trainer-toolbar strong{margin-right:auto}
+.trainer-toolbar button,.trainer-discovery button{min-height:42px;padding:8px 14px;background:#1b3e57;border:1px solid #61b5cb;color:white;border-radius:10px;cursor:pointer}
+#trainerFrame{width:100%;flex:1;min-height:360px;border:1px solid #346a75;border-radius:12px;background:#101820}
+#trainerDiscovery{position:fixed;inset:0;z-index:10020;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(3,9,20,.83)}
+#trainerDiscovery.hidden{display:none}
+.trainer-discovery{width:min(480px,100%);background:#102435;border:1px solid #55b5cb;border-radius:18px;padding:22px;box-shadow:0 12px 45px #0009;color:#e9f8ff}
+.trainer-discovery p{line-height:1.5}
+.trainer-discovery-actions{display:flex;gap:10px;flex-wrap:wrap}
+@media(max-width:600px){#trainerPanel{padding:5px}#trainerFrame{min-height:300px}.trainer-toolbar{font-size:13px}}
 </style>
 </head>
 <link rel="icon" href="favicon.ico" type="image/x-icon">
@@ -483,6 +497,10 @@ main.chat-area{flex:1;min-height:0;padding:10px 8px 16px;overflow:auto;scrollbar
  <div id="advStory" role="log" aria-live="polite" style="white-space:pre-wrap;max-height:35vh;overflow:auto;padding:10px;background:#192b31;border-radius:8px;margin:8px 0"></div>
  <div style="display:flex;gap:6px"><input id="advAction" maxlength="1200" placeholder="What do you do?" style="flex:1;min-width:0"><button id="advSend">Act</button></div>
  </section>
+<section id="trainerPanel" class="hidden" aria-label="CyberpetsAI Trainer minigame">
+ <div class="trainer-toolbar"><strong>CyberpetsAI Trainer · Hidden Artifact</strong><span id="trainerStatus" role="status">Train, charge, clean and play with your Cyberpet.</span><button id="trainerExit" type="button">Exit Trainer</button></div>
+ <iframe id="trainerFrame" title="CyberpetsAI Trainer" loading="lazy" referrerpolicy="same-origin" allow="fullscreen" ></iframe>
+</section>
 <main class="chat-area" aria-label="LinkLink conversation">
   <div class="messages" id="messages"></div>
 </main>
@@ -501,6 +519,13 @@ main.chat-area{flex:1;min-height:0;padding:10px 8px 16px;overflow:auto;scrollbar
  <p id="menuFeedback" role="status" aria-live="polite"></p>
  <small>Agent XP, HP and mission history are server-authoritative. This menu does not reset RPG progression or delete NFT metadata.</small>
 </div></div>
+<div id="trainerDiscovery" class="hidden" role="presentation">
+ <div class="trainer-discovery" role="dialog" aria-modal="true" aria-labelledby="trainerDiscoveryTitle" tabindex="-1">
+  <h2 id="trainerDiscoveryTitle">Artifact detected: CyberpetsAI Trainer</h2>
+  <p>LinkLink has uncovered a hidden training simulation. Reveal the artifact and enter the Trainer? This uses your existing verified CyberpetsAI wallet session. No additional signature, wallet connection or NFT mint is needed.</p>
+  <div class="trainer-discovery-actions"><button id="trainerReveal" type="button">Reveal artifact</button><button id="trainerCancel" type="button">Not now</button></div>
+ </div>
+</div>
 <div class="composer">
   <input id="input" class="input" disabled placeholder="Ask Your CyberpetAi Anything..." />
   <button id="send" class="send" disabled>Send</button>
@@ -813,6 +838,7 @@ function selectNFT(nft, silent = false){
   }
 
   if (userAddress) localStorage.setItem('activeNFT:' + userAddress, nft.tokenId);
+  syncTrainerPetAvatar();
 
   if(nftDropdown){
     nftDropdown.classList.add('hidden');
@@ -1210,7 +1236,7 @@ function push(who, text){
 
 /* ---------------- UNIFIED LINKLINK HUB ---------------- */
 let linkMode='chat';
-const hubTitles={chat:'LinkLink · Companion Chat',adventure:'LinkLink · Freeform Adventure',missions:'LinkLink · Containment Missions',agent:'LinkLink · Agent & Inventory'};
+const hubTitles={chat:'LinkLink · Companion Chat',adventure:'LinkLink · Freeform Adventure',missions:'LinkLink · Containment Missions',agent:'LinkLink · Agent & Inventory',trainer:'LinkLink · CyberpetsAI Trainer'};
 function updateHub(p){
  if(!p)return;
  const max=Math.max(1,Number(p.maxHp)||1),level=Math.max(1,Number(p.level)||1),xpGoal=level*100;
@@ -1226,6 +1252,8 @@ async function setLinkMode(mode){
  document.getElementById('workspaceTitle').textContent=hubTitles[mode];
  agentPanel.classList.toggle('hidden',!['missions','agent'].includes(mode));
  advPanel.classList.toggle('hidden',mode!=='adventure');
+ document.getElementById('trainerPanel').classList.toggle('hidden',mode!=='trainer');
+ if(mode!=='trainer')document.getElementById('trainerFrame').removeAttribute('src');
  document.querySelector('main.chat-area').classList.toggle('hidden',mode!=='chat');
  for(const [id,m] of [['chatModeBtn','chat'],['adventureBtn','adventure'],['agentBtn','missions'],['inventoryBtn','agent']])document.getElementById(id).setAttribute('aria-pressed',String(mode===m));
  closeGameMenu();
@@ -1287,10 +1315,63 @@ document.getElementById('menuClearCache').onclick=()=>{
 /* Local navigation commands are deterministic and do not invoke AI or modify gameplay. */
 function linkNavigation(text){
  const t=text.trim().toLowerCase().replace(/[.!?]+$/,'');
+ if (/^(?:(?:linklink[, ]+)?(?:open|show|find|play|launch|reveal)\s+)?(?:the\s+)?cyber\s*pets?\s*trainer(?:\s+(?:game|artifact))?$/.test(t)) {
+   const gate=document.getElementById('trainerDiscovery');
+   if(!hasNFTAccess){push('LinkLink','Authenticate with your CyberpetsAI NFT wallet to reveal this artifact.');return true;}
+   gate.classList.remove('hidden');document.querySelector('.trainer-discovery').focus();
+   push('LinkLink','Hidden artifact detected: CyberpetsAI Trainer. Choose Reveal artifact to enter the training simulation.');
+   return true;
+ }
+
  const commands=[[/^(?:linklink[, ]+)?(?:open|show|go to|switch to) (?:the )?(?:game )?menu$/,()=>openGameMenu(),'Opening the game menu.'],[/^(?:linklink[, ]+)?(?:open|show|switch to) (?:the )?(?:agent|inventory|stats)$/,()=>setLinkMode('agent'),'Opening Agent & Inventory.'],[/^(?:linklink[, ]+)?(?:open|show|switch to) (?:the )?(?:missions|mission board)$/,()=>setLinkMode('missions'),'Opening Containment Missions.'],[/^(?:linklink[, ]+)?(?:open|show|switch to) (?:the )?(?:adventure|adventures)$/,()=>setLinkMode('adventure'),'Opening Freeform Adventure.'],[/^(?:linklink[, ]+)?(?:open|show|switch to) (?:the )?(?:chat|companion chat)$/,()=>setLinkMode('chat'),'Opening Companion Chat.']];
  for(const [regex,action,reply] of commands)if(regex.test(t)){action();push('LinkLink',escapeHtml(reply));return true;}
  return false;
 }
+
+// Selected NFT is the sole source for Trainer pet appearance. This is UI-only.
+function syncTrainerPetAvatar(){
+ const frame=document.getElementById('trainerFrame');
+ if(!frame || !frame.contentWindow || !activeNFT || !ownedNFTs.some(n=>String(n.tokenId)===String(activeNFT.tokenId)))return;
+ const image=resolveAvatarUrlFromToken(activeNFT.tokenId) || resolveNFTImage(activeNFT);
+ if(typeof image!=='string')return;
+ let url;
+ try{url=new URL(image,location.href);}catch{return;}
+ if(url.protocol!=='https:' && url.origin!==location.origin)return;
+ frame.contentWindow.postMessage({type:'cyberpets:trainer:pet',tokenId:String(activeNFT.tokenId),imageUrl:url.href,name:String(activeNFT.name||'Cyberpet').slice(0,100)},location.origin);
+}
+document.getElementById('trainerFrame').addEventListener('load',syncTrainerPetAvatar);
+// Trainer discovery: explicit confirmation and existing wallet-gated server session.
+function closeTrainerDiscovery(){document.getElementById('trainerDiscovery').classList.add('hidden');inputEl.focus();}
+document.getElementById('trainerCancel').onclick=closeTrainerDiscovery;
+document.getElementById('trainerReveal').onclick=async()=>{
+ closeTrainerDiscovery();
+ try {
+  const r=await fetch('/api/session',{credentials:'include'});
+  if(!r.ok)throw new Error('Your LinkLink session has expired. Sign in again.');
+  const d=await r.json();
+  if(!Array.isArray(d.nfts)||!d.nfts.length)throw new Error('A verified CyberpetsAI NFT is required.');
+  // Select only an NFT confirmed by the current authenticated session.
+  if(!activeNFT || !d.nfts.some(n=>String(n.tokenId)===String(activeNFT.tokenId))){
+   const verified=d.nfts[0];
+   const local=ownedNFTs.find(n=>String(n.tokenId)===String(verified.tokenId));
+   if(local)selectNFT(local);
+   else throw new Error('Select a verified Cyberpet to enter Trainer.');
+  }
+  await setLinkMode('trainer');
+  document.getElementById('trainerFrame').src='/trainer/';
+  push('LinkLink','Trainer artifact revealed. Use Train, Charge, Clean and Play to care for your Cyberpet.');
+ }catch(e){push('LinkLink',escapeHtml(e.message));}
+};
+document.getElementById('trainerExit').onclick=()=>setLinkMode('chat');
+document.getElementById('trainerDiscovery').addEventListener('click',e=>{if(e.target.id==='trainerDiscovery')closeTrainerDiscovery();});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!document.getElementById('trainerDiscovery').classList.contains('hidden'))closeTrainerDiscovery();});
+window.addEventListener('message',e=>{
+ if(e.origin!==window.location.origin||e.source!==document.getElementById('trainerFrame').contentWindow)return;
+ if(e.data?.type==='cyberpets:trainer:complete'){
+  document.getElementById('trainerStatus').textContent='Training complete · Simulation victory';
+  push('LinkLink','Training complete! Your Cyberpet has mastered the simulation. No NFT or Agent progression was modified.');
+ }
+});
 
 /* ---------------- INIT ------------------------------------------------------------------------------------------------------ */
 async function loadRarityTable() {

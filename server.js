@@ -112,6 +112,23 @@ async function getSession(req) {
   if (!raw || !/^[a-f0-9]{64}$/.test(raw)) return null;
   return store.session(hashSession(raw), INACTIVITY_LIMIT);
 }
+// Embedded CyberpetsAI Trainer: uses the existing signed wallet session and verified
+// CyberpetsAI collection ownership. No separate wallet auth, minting or NFT metadata writes.
+app.use('/trainer', asyncRoute(async (req, res, next) => {
+  const session = await getSession(req);
+  if (!session) return res.status(401).send('Sign in to LinkLink to access CyberpetsAI Trainer.');
+  if (!Array.isArray(session.nfts) || !session.nfts.length) return res.status(403).send('CyberpetsAI ownership required.');
+  next();
+}));
+app.use('/trainer', express.static(path.join(__dirname, 'trainer'), {
+  dotfiles: 'deny', index: 'index.html', fallthrough: false,
+  setHeaders(res) {
+    res.setHeader('Cache-Control', 'private, no-store');
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('Content-Security-Policy', "frame-ancestors 'self'");
+  }
+}));
+
 async function fetchWalletNFTs(address) {
   if (!OPENSEA_API_KEY) throw new Error('OPENSEA_API_KEY is not configured');
   const holdings = new Map();
