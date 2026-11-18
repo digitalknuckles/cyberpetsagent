@@ -1,0 +1,34 @@
+[
+  {
+    "id": "location.signal-yard",
+    "category": "location",
+    "title": "Signal Yard",
+    "version": "1.3.0",
+    "status": "approved",
+    "tags": [
+      "signal",
+      "yard",
+      "relay",
+      "mission"
+    ],
+    "content": "A fictional training zone of derelict relay towers and malfunctioning companion beacons.",
+    "canon": false,
+    "aliases": []
+  },
+  {
+    "id": "location.reboot-vault",
+    "category": "location",
+    "title": "Reboot Vault",
+    "version": "1.3.0",
+    "status": "approved",
+    "tags": [
+      "vault",
+      "reboot",
+      "containment",
+      "puzzle"
+    ],
+    "content": "A fictional containment laboratory used for Reboot-Key diagnostics and repair sequences.",
+    "canon": false,
+    "aliases": []
+  }
+]

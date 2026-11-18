@@ -1,6 +1,6 @@
 {
   "schemaVersion": "1.0.0",
-  "loreRelease": "1.0.0",
+  "loreRelease": "1.3.0",
   "status": "approved",
   "records": [
     "universe.json",
@@ -8,6 +8,13 @@
     "collections.json",
     "artifacts.json",
     "missions.json",
-    "timeline.json"
+    "timeline.json",
+    "locations.json",
+    "factions.json",
+    "dialogue.json",
+    "items.json",
+    "puzzles.json",
+    "encounters.json",
+    "progression.json"
   ]
 }

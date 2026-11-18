@@ -377,6 +377,172 @@ main.chat-area{
   opacity:.85;
 }
 
+
+/* v1.3 compact responsive UI: one LinkLink conversation, expandable tool panels */
+header{display:flex;align-items:center;flex-wrap:wrap;gap:6px;padding:10px 12px}
+header .send{margin-left:0!important;min-height:38px}
+#connectBtn{margin-left:auto!important;max-width:100%;overflow:hidden;text-overflow:ellipsis}
+#agentPanel{margin:8px;padding:12px;border:1px solid #376a64;background:#10242a;border-radius:12px;color:#e5f7f0;max-height:50vh;overflow:auto;position:relative;z-index:5}
+.agent-heading{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.agent-choices{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}
+.agent-choices button,#agentClose{min-height:42px;padding:8px 12px;border:1px solid #55a89b;border-radius:8px;background:#183b3d;color:#f3fff8;cursor:pointer}
+.agent-choices button:disabled{opacity:.5}
+#agentStats,#agentInventory,#agentMission{padding:6px 0;line-height:1.5}
+#agentNotice{font-size:12px;color:#b1e8cb}
+@media(max-width:600px){header{gap:5px}header .brand{font-size:18px}header .subtitle{font-size:10px}header .send{font-size:12px;padding:7px 9px}#adventurePanel{max-height:48vh!important;margin:5px!important;padding:9px!important}#agentPanel{max-height:48vh}#advAction{min-height:42px}.composer{padding-bottom:max(8px,env(safe-area-inset-bottom))}}
+
+/* v1.3.1 unified stateful LinkLink workspace */
+.hidden{display:none!important}
+.app{max-width:1120px;height:100dvh;min-height:0}
+header{background:rgba(9,16,30,.92);border-bottom:1px solid #31435b;z-index:12;flex-shrink:0}
+.brand{font-size:20px}.subtitle{font-size:12px}
+.hub-nav{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.hub-nav button{min-height:42px;padding:8px 12px;background:#18263b;border:1px solid #3a526b;border-radius:10px;color:#d9e9ff;cursor:pointer;font-weight:650}
+.hub-nav button[aria-pressed=true]{background:linear-gradient(125deg,#087d99,#5940b7);color:white;border-color:#77c6e8}
+#gameMenuBtn{background:#29304d}
+#hubStats{display:flex;gap:12px;align-items:center;flex-wrap:wrap;padding:8px 14px;background:rgba(8,20,35,.93);border-bottom:1px solid #2c4a5a;flex-shrink:0;z-index:10}
+.hub-meter{display:flex;align-items:center;gap:7px;min-width:155px;font-size:12px}.hub-meter strong{white-space:nowrap}
+.meter-track{width:100px;height:9px;border-radius:12px;background:#304155;overflow:hidden}.meter-track>span{display:block;height:100%;background:#32c59d;width:0%;transition:width .25s}.hub-meter.xp .meter-track>span{background:#9a8cf5}
+#hubLevel{font-size:13px;font-weight:750;color:#d5f5f0}
+#workspace{flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden;position:relative;padding:10px 12px 0}
+#workspaceTitle{margin:0 0 8px;font-size:15px;font-weight:750;color:#cceaf3}
+#agentPanel,#adventurePanel{position:static!important;z-index:auto!important;margin:0!important;max-height:none!important;overflow:auto!important;flex:1;min-height:0;background:rgba(9,23,34,.93)!important;border:1px solid #355a65;border-radius:12px;padding:16px!important}
+main.chat-area{flex:1;min-height:0;padding:10px 8px 16px;overflow:auto;scrollbar-width:thin}
+#workspace [hidden],#workspace .hidden{display:none!important}
+#agentClose,#advClose{display:none!important}
+#advStory{max-height:38vh!important;overflow:auto}#advAction{min-height:42px;background:#152537;color:white;border:1px solid #55768b;border-radius:8px;padding:9px}
+#advOpen,#advCheckpoint,#advRestore,#advSend{min-height:40px;border-radius:8px;background:#203d50;color:#e8f8ff;border:1px solid #5d879b;padding:8px;cursor:pointer}
+#advList{min-height:40px;background:#1d3444;color:white;border-radius:8px}
+.composer{position:relative;flex-shrink:0;z-index:11;padding:10px 12px;background:#0b1423;border-top:1px solid #33465a}
+.pfp-overlay{top:8px;right:12px;width:54px;height:54px;z-index:15}.nft-status{top:65px;right:13px;width:52px;height:6px}.nft-selector{top:76px;right:10px}
+.avatar{width:140px;height:140px;left:calc(50% - 690px);bottom:70px;opacity:.9}
+#menuOverlay{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:50;display:flex;justify-content:center;align-items:center;padding:16px}
+#menuOverlay.hidden{display:none!important}
+#menuDialog{width:min(560px,100%);max-height:88dvh;overflow:auto;background:#111e30;border:1px solid #5c8da3;border-radius:16px;padding:18px;color:#edf7ff;box-shadow:0 15px 60px #0009}
+.menu-head{display:flex;align-items:center;justify-content:space-between;gap:8px}.menu-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:12px 0}
+.menu-grid button,.menu-head button,#menuDelete,#menuMemory{min-height:44px;background:#263a52;color:#fff;border:1px solid #5d809c;border-radius:9px;cursor:pointer;padding:8px}
+#menuSaved{width:100%;min-height:42px;background:#1b3044;color:#fff;border:1px solid #6589a4;border-radius:8px}
+#menuFeedback{font-size:13px;color:#a6e8d7;min-height:20px;margin:8px 0}
+#menuDelete{border-color:#d47a83;background:#572c3a}
+@media(max-width:900px){.avatar{display:none}.app{max-width:100%}header{padding-right:76px}}
+@media(max-width:600px){header{gap:6px;padding:8px 70px 8px 9px}.brand{font-size:17px}.subtitle{display:none}.hub-nav{width:100%;gap:4px}.hub-nav button{flex:1;font-size:12px;padding:8px 5px;min-height:42px}#connectBtn{font-size:11px;min-height:36px!important;padding:6px 8px!important}#hubStats{padding:7px 9px;gap:7px}.hub-meter{min-width:125px;gap:4px}.meter-track{width:65px}#workspace{padding:7px 6px 0}#agentPanel,#adventurePanel{padding:10px!important}#advStory{max-height:30vh!important}.composer{padding-bottom:max(9px,env(safe-area-inset-bottom))}.menu-grid{grid-template-columns:1fr}}
+
+
+/* Trainer discovery overlay: contained in the existing LinkLink workspace */
+#trainerPanel{height:100%;min-height:0;display:flex;flex-direction:column;gap:8px;padding:10px;background:#101b28}
+#trainerPanel.hidden{display:none}
+.trainer-toolbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;color:#e7f8ff}
+.trainer-toolbar strong{margin-right:auto}
+.trainer-toolbar button,.trainer-discovery button{min-height:42px;padding:8px 14px;background:#1b3e57;border:1px solid #61b5cb;color:white;border-radius:10px;cursor:pointer}
+#trainerFrame{width:100%;flex:1;min-height:360px;border:1px solid #346a75;border-radius:12px;background:#101820}
+#trainerDiscovery{position:fixed;inset:0;z-index:10020;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(3,9,20,.83)}
+#trainerDiscovery.hidden{display:none}
+.trainer-discovery{width:min(480px,100%);background:#102435;border:1px solid #55b5cb;border-radius:18px;padding:22px;box-shadow:0 12px 45px #0009;color:#e9f8ff}
+.trainer-discovery p{line-height:1.5}
+.trainer-discovery-actions{display:flex;gap:10px;flex-wrap:wrap}
+@media(max-width:600px){#trainerPanel{padding:5px}#trainerFrame{min-height:300px}.trainer-toolbar{font-size:13px}}
+/* v1.3.4: 200% avatar/PFP size; responsive without blocking menus */
+.pfp-overlay{width:108px!important;height:108px!important;top:8px!important;right:12px!important}
+.nft-status{top:119px!important;right:14px!important;width:104px!important}
+.avatar{width:280px!important;height:280px!important;left:max(8px,calc(50% - 710px))!important}
+header{padding-right:132px!important}
+#petProgress{display:flex;gap:12px;align-items:center;flex-wrap:wrap;padding:8px 14px;background:#0b2231;border-bottom:1px solid #2b5268;color:#d8f4ff;font-size:12px}
+.pet-meter{display:flex;gap:6px;align-items:center}.pet-meter>span{width:85px;height:9px;border-radius:10px;background:#334859;overflow:hidden}.pet-meter i{display:block;height:100%;width:0%;background:#47cda6}.pet-meter:has(#petXpBar) i{background:#ae9bfa}.pet-meter small{min-width:43px}
+#petDetails{margin-top:12px;padding:12px;background:#132b3b;border-radius:10px;line-height:1.6}
+@media(max-width:900px){.avatar{display:none!important}}
+@media(max-width:600px){.pfp-overlay{width:88px!important;height:88px!important}.nft-status{top:98px!important;width:86px!important}header{padding-right:104px!important}#petProgress{gap:7px;font-size:11px}}
+
+/* v1.3.4a: the floating pet occupies a separate desktop rail, not the game/chat surface. */
+@media(min-width:901px){
+  .app{position:relative;isolation:isolate}
+  #avatar.avatar{position:fixed!important;width:clamp(90px,10vw,170px)!important;height:clamp(90px,10vw,170px)!important;left:max(8px,calc((100vw - 1120px)/2 - 188px))!important;top:auto!important;bottom:26px!important;z-index:0!important;pointer-events:none!important;opacity:.82!important}
+  .app,.app #workspace,.app .messages,.app .composer{z-index:1}
+  .msg.ai{position:relative}
+}
+@media(min-width:901px) and (max-width:1460px){#avatar.avatar{display:none!important}}
+/* Message portraits stay inside each bubble instead of escaping their boundaries. */
+.msg{box-sizing:border-box;min-width:0;overflow-wrap:anywhere;overflow:hidden}
+.msg-avatar{max-width:48px!important;max-height:48px!important;width:48px!important;height:48px!important;object-fit:contain;float:left;margin:0 10px 6px 0;position:static!important}
+
+/* v1.3.5 fluid responsive LinkLink shell: 4 / 8 / 12-column breakpoints */
+:root{--layout-gap:clamp(8px,1.4vw,18px)}
+html,body{width:100%;max-width:100%;overflow:hidden}
+.app{width:100%;max-width:min(100%,1440px);height:100dvh;min-height:0;overflow:hidden}
+header{display:flex;flex-wrap:wrap;gap:var(--layout-gap);align-items:center;min-width:0}
+.hub-nav{min-width:0;max-width:100%;display:flex;flex-wrap:wrap;gap:8px}
+.hub-nav button{min-height:44px}
+#hubStats,#petProgress{min-width:0;row-gap:8px}
+#workspace{min-width:0;min-height:0;flex:1;overflow:hidden;padding:clamp(6px,1vw,14px)}
+#trainerPanel{flex:1;min-height:0;overflow:hidden;padding:clamp(4px,.8vw,10px);gap:6px}
+#trainerFrame{display:block;flex:1 1 0;min-height:0!important;height:100%;width:100%;border-radius:10px}
+.trainer-toolbar{flex:0 0 auto;min-width:0;gap:8px}
+.trainer-toolbar strong{margin-right:0}
+.trainer-toolbar #trainerStatus{flex:1;min-width:140px;overflow-wrap:anywhere}
+#agentPanel,#adventurePanel{min-width:0;max-width:100%;overflow:auto}
+#advStory{max-height:min(38vh,360px)!important}
+#avatar.avatar{display:none!important} /* response-bubble avatar replaces floating art */
+.msg{max-width:100%;overflow-wrap:anywhere}
+.msg-avatar{max-width:48px;height:48px;object-fit:contain}
+.pfp-overlay{width:clamp(56px,7vw,88px)!important;height:clamp(56px,7vw,88px)!important;right:10px!important;top:8px!important}
+.nft-status{width:clamp(54px,7vw,86px)!important;top:calc(14px + clamp(56px,7vw,88px))!important;right:11px!important}
+header{padding-right:clamp(82px,10vw,110px)!important}
+@media(max-width:1199px){.app{max-width:100%}header{padding:9px clamp(8px,2vw,18px)}.hub-nav{width:100%;order:3}.hub-nav button{flex:1 1 auto}.brand{font-size:18px}#workspaceTitle{font-size:13px}}
+@media(max-width:700px){
+ .app{width:100%;max-width:100%}header{padding:8px 76px 8px 10px!important;gap:7px}
+ .hub-nav{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:4px;width:100%;order:3}
+ .hub-nav button{min-width:0;min-height:44px;padding:7px 2px;font-size:clamp(10px,2.3vw,12px);overflow-wrap:anywhere}
+ .brand{font-size:16px}.subtitle{display:none}#connectBtn{min-height:38px!important;font-size:11px;max-width:130px}
+ .pfp-overlay{width:60px!important;height:60px!important;right:8px!important;top:8px!important}.nft-status{top:70px!important;right:9px!important;width:58px!important}
+ #hubStats{gap:6px;padding:6px 9px}#hubLevel{font-size:11px}.hub-meter{min-width:0;font-size:11px;gap:4px}.meter-track{width:clamp(36px,12vw,64px)}
+ #petProgress{padding:6px 9px;gap:5px;font-size:11px}#petCombatStats{width:100%}
+ #workspace{padding:5px 5px 0}#workspaceTitle{margin-bottom:4px}
+ #trainerPanel{padding:3px;gap:4px}.trainer-toolbar{gap:5px;font-size:11px}.trainer-toolbar strong{font-size:12px}.trainer-toolbar button{min-height:36px;padding:5px 8px;font-size:11px}
+ #trainerFrame{border-radius:6px}
+ .composer{padding:8px 9px max(8px,env(safe-area-inset-bottom))}
+ #agentPanel,#adventurePanel{padding:10px!important}
+ .menu-grid{grid-template-columns:1fr}
+}
+@media(max-width:500px){.hub-nav{grid-template-columns:repeat(5,minmax(0,1fr))}#trainerStatus{font-size:10px;flex-basis:100%}.trainer-toolbar strong{flex:1}#petProgress .pet-meter>span{width:54px}#petProgress .pet-meter small{min-width:32px}}
+@media(min-width:701px) and (max-width:1199px){.app{display:flex}#workspace{padding:10px 14px}#trainerPanel{padding:8px}.hub-nav{display:grid;grid-template-columns:repeat(5,minmax(0,1fr))}}
+@media(min-width:1200px){.app{max-width:1440px}#workspace{padding:12px 18px}.hub-nav{flex-wrap:nowrap}}
+
+/* v1.3.6 desktop conversation lane and per-response animated Cyberpet */
+:root{--chat-lane:720px;--desktop-game-lane:700px}
+main.chat-area{background:linear-gradient(155deg,rgba(22,35,55,.78),rgba(8,19,32,.9));border:1px solid rgba(109,145,176,.17);border-radius:16px}
+.messages{width:100%;gap:14px;align-items:stretch}
+.msg{position:relative;max-width:min(80%,560px);width:max-content;min-width:0;overflow:visible!important;padding:12px 16px;border-radius:16px;line-height:1.5;box-shadow:0 5px 16px rgba(0,0,0,.13)}
+.msg.ai{align-self:flex-start;margin-left:44px;background:#203247;border:1px solid #3a5368;border-bottom-left-radius:5px}
+.msg.user{align-self:flex-end;margin-right:0;background:linear-gradient(125deg,#513f9a,#246e93);border-bottom-right-radius:5px}
+.response-avatar{position:absolute;display:block;width:60px;height:84px;left:-45px;bottom:0;overflow:hidden;pointer-events:none;z-index:2}
+.response-avatar img{position:absolute;width:110px;height:110px;max-width:none;object-fit:contain;right:-49px;bottom:-13px;transform-origin:65% 90%;animation:pet-response 1.8s ease-in-out infinite alternate;filter:drop-shadow(0 4px 6px rgba(0,0,0,.4))}
+.response-avatar.thinking img{animation:pet-thinking .65s ease-in-out infinite alternate}
+@keyframes pet-response{from{transform:translateY(2px) rotate(-3deg)}to{transform:translateY(-5px) rotate(3deg)}}
+@keyframes pet-thinking{from{transform:translateY(3px) scale(.97)}to{transform:translateY(-7px) scale(1.04)}}
+@media(prefers-reduced-motion:reduce){.response-avatar img{animation:none!important}}
+@media(min-width:1200px){
+  main.chat-area{width:min(50%,var(--chat-lane));max-width:var(--chat-lane);align-self:center;flex:none;min-height:0;flex-grow:1;padding:20px 20px 24px 24px}
+  .composer{width:min(50%,var(--chat-lane));max-width:var(--chat-lane);align-self:center;border:1px solid #33465a;border-radius:0 0 14px 14px}
+  #trainerPanel,#adventurePanel,#agentPanel{width:min(50%,var(--desktop-game-lane));max-width:var(--desktop-game-lane);align-self:center}
+  #workspace{align-items:stretch}
+  #workspaceTitle{width:min(50%,var(--chat-lane));align-self:center}
+}
+@media(max-width:1199px){main.chat-area{width:100%;flex:1;min-height:0}.msg{max-width:82%}.response-avatar{left:-39px;width:53px}.msg.ai{margin-left:39px}}
+@media(max-width:500px){main.chat-area{padding:10px 10px 16px}.msg{max-width:85%;font-size:14px;padding:10px 12px}.msg.ai{margin-left:33px}.response-avatar{left:-34px;width:46px;height:67px}.response-avatar img{width:88px;height:88px;right:-39px;bottom:-10px}}
+
+/* v1.3.7: the conversation and composer are siblings in the flex column.
+   The composer occupies real layout height; messages scroll only above it. */
+.app{min-height:0}
+#workspace{flex:1 1 auto;min-height:0;overflow:hidden}
+main.chat-area{box-sizing:border-box;flex:1 1 0!important;min-height:0!important;max-height:100%;overflow-y:auto;overscroll-behavior:contain;padding-bottom:18px!important;scrollbar-gutter:stable}
+.composer{position:relative!important;inset:auto!important;bottom:auto!important;left:auto!important;right:auto!important;flex:0 0 auto;box-sizing:border-box;min-height:64px;z-index:6;}
+.messages{min-height:0;padding:2px 0 12px}
+/* The active NFT portrait is completely visible and only attached to the latest AI reply. */
+.msg.ai{margin-left:clamp(66px,8vw,100px)!important}
+.response-avatar{width:clamp(68px,8vw,100px)!important;height:clamp(68px,8vw,100px)!important;left:calc(-1 * clamp(68px,8vw,100px))!important;bottom:0!important;overflow:visible!important}
+.response-avatar img{position:static!important;display:block;width:100%!important;height:100%!important;max-width:100%!important;object-fit:contain!important;transform-origin:50% 90%}
+@media(min-width:1200px){.composer{width:min(50%,var(--chat-lane));max-width:var(--chat-lane);align-self:center}main.chat-area{width:min(50%,var(--chat-lane));max-width:var(--chat-lane);align-self:center}}
+@media(max-width:700px){.msg.ai{margin-left:60px!important}.response-avatar{width:60px!important;height:68px!important;left:-60px!important}.composer{padding-bottom:max(8px,env(safe-area-inset-bottom))}}
+@media(max-width:380px){.msg.ai{margin-left:50px!important}.response-avatar{width:50px!important;height:60px!important;left:-50px!important}}
 </style>
 </head>
 <link rel="icon" href="favicon.ico" type="image/x-icon">
@@ -385,8 +551,16 @@ main.chat-area{
 <header>
   <div>
     <div class="brand">Cyberpets AI</div>
-    <div class="subtitle">NFT-gated assistant</div>
+    <div class="subtitle">LinkLink · Containment Protocol</div>
   </div>
+  <nav class="hub-nav" aria-label="LinkLink modes">
+    <button id="chatModeBtn" type="button" aria-pressed="true">Chat</button>
+    <button id="adventureBtn" type="button" aria-pressed="false">Adventure</button>
+    <button id="agentBtn" type="button" aria-pressed="false">Missions</button>
+    <button id="inventoryBtn" type="button" aria-pressed="false">Agent</button>
+    <button id="gameMenuBtn" type="button" aria-haspopup="dialog">☰ Menu</button>
+  </nav>
+  <button id="memoryBtn" type="button" class="hidden" aria-hidden="true" tabindex="-1">Memory</button>
   <button id="connectBtn" class="send blink" style="margin-left:auto">Connect Wallet</button>
 </header>
 
@@ -401,10 +575,60 @@ main.chat-area{
 <div class="nft-status"><div id="nftStatusFill" class="nft-status-fill"></div></div>
 
 
-<main class="chat-area">
+<div id="hubStats" aria-label="Agent progress">
+ <span id="hubLevel">Agent · Sign in</span>
+ <div class="hub-meter"><strong>HP</strong><div class="meter-track"><span id="hubHpBar"></span></div><span id="hubHpText">—</span></div>
+ <div class="hub-meter xp"><strong>XP</strong><div class="meter-track"><span id="hubXpBar"></span></div><span id="hubXpText">—</span></div>
+</div>
+<div id="petProgress" aria-label="Selected Cyberpet progression"><strong id="petName">Cyberpet · Select NFT</strong><span id="petLevel">Lv —</span><div class="pet-meter"><label>HP</label><span><i id="petHpBar"></i></span><small id="petHpText">—</small></div><div class="pet-meter"><label>XP</label><span><i id="petXpBar"></i></span><small id="petXpText">—</small></div><span id="petCombatStats">Power — · Defense — · Containment —</span></div>
+<div id="workspace"><div id="workspaceTitle">LinkLink · Companion Chat</div>
+<section id="agentPanel" class="hidden" aria-label="Containment Agent status">
+  <div class="agent-heading"><strong>Containment Agent</strong><button id="agentClose" type="button">Close</button></div>
+  <div id="agentStats" aria-live="polite">Authenticate your wallet to load agent progress.</div>
+  <div id="agentMission"></div><div id="agentChoices" class="agent-choices"></div>
+  <div id="agentInventory"></div><div id="petDetails" role="status">Select a Cyberpet to view its training stats.</div><div id="agentNotice" role="status"></div>
+</section>
+<section id="adventurePanel" class="hidden" style="padding:12px;max-height:75vh;overflow:auto;background:#101820;color:#e9f5ee;border:1px solid #2c6155;border-radius:12px;margin:8px;position:relative;z-index:5">
+ <h3 style="margin:4px 0">LinkLink · Freeform Adventure <small style="font-weight:normal">· RPG Mode</small></h3>
+ <div style="display:flex;flex-wrap:wrap;gap:7px;align-items:center;margin-bottom:8px">
+  <select id="advList" aria-label="Saved adventures" style="max-width:180px"><option value="">New adventure</option></select>
+  <button id="advOpen">Load / Start</button><button id="advCheckpoint">Checkpoint</button><button id="advRestore">Restore</button>
+  <label><input type="checkbox" id="advSave" checked> Save progress</label><button id="advClose">Close adventure</button>
+ </div>
+ <div id="advStatus" style="font-size:12px;color:#a9c7b9">Connect a wallet to begin.</div>
+ <pre id="advState" style="white-space:pre-wrap;font-size:12px;max-height:110px;overflow:auto"></pre>
+ <div id="advStory" role="log" aria-live="polite" style="white-space:pre-wrap;max-height:35vh;overflow:auto;padding:10px;background:#192b31;border-radius:8px;margin:8px 0"></div>
+ <div style="display:flex;gap:6px"><input id="advAction" maxlength="1200" placeholder="What do you do?" style="flex:1;min-width:0"><button id="advSend">Act</button></div>
+ </section>
+<section id="trainerPanel" class="hidden" aria-label="CyberpetsAI Trainer minigame">
+ <div class="trainer-toolbar"><strong>CyberpetsAI Trainer · Hidden Artifact</strong><span id="trainerStatus" role="status">Train, charge, clean and play with your Cyberpet.</span><button id="trainerExit" type="button">Exit Trainer</button></div>
+ <iframe id="trainerFrame" title="CyberpetsAI Trainer" loading="lazy" referrerpolicy="same-origin" allow="fullscreen" ></iframe>
+</section>
+<main class="chat-area" aria-label="LinkLink conversation">
   <div class="messages" id="messages"></div>
 </main>
 
+</div>
+<div id="menuOverlay" class="hidden" role="presentation"><div id="menuDialog" role="dialog" aria-modal="true" aria-labelledby="menuTitle" tabindex="-1">
+ <div class="menu-head"><h2 id="menuTitle">LinkLink · Game Menu</h2><button id="menuClose" type="button">Close</button></div>
+ <p>Choose a mode or manage saved adventures. Wallet-owned NFT metadata is never changed by these controls.</p>
+ <div class="menu-grid"><button data-mode="chat">Companion Chat</button><button data-mode="adventure">Freeform Adventure</button><button data-mode="missions">Containment Missions</button><button data-mode="agent">Agent & Inventory</button></div>
+ <h3>Saved adventures</h3><select id="menuSaved" aria-label="Choose saved adventure"><option value="">Select a save</option></select>
+ <div class="menu-grid"><button id="menuRefresh">Refresh saves</button><button id="menuLoad">Load selected</button><button id="menuCheckpoint">Create checkpoint</button><button id="menuRestore">Restore checkpoint</button><button id="menuDelete">Delete selected save</button><button id="menuMemory">Manage Collector Memory</button></div>
+ <label><input type="checkbox" id="menuConfirm"> I understand deleting a save permanently removes its checkpoints.</label>
+ <h3>Settings & local cache</h3>
+ <label><input id="menuCompact" type="checkbox"> Compact chat text</label>
+ <div class="menu-grid"><button id="menuClearChat">Clear on-screen conversation</button><button id="menuClearCache">Clear LinkLink UI preferences</button></div>
+ <p id="menuFeedback" role="status" aria-live="polite"></p>
+ <small>Agent XP, HP and mission history are server-authoritative. This menu does not reset RPG progression or delete NFT metadata.</small>
+</div></div>
+<div id="trainerDiscovery" class="hidden" role="presentation">
+ <div class="trainer-discovery" role="dialog" aria-modal="true" aria-labelledby="trainerDiscoveryTitle" tabindex="-1">
+  <h2 id="trainerDiscoveryTitle">Artifact detected: CyberpetsAI Trainer</h2>
+  <p>LinkLink has uncovered a hidden training simulation. Reveal the artifact and enter the Trainer? This uses your existing verified CyberpetsAI wallet session. No additional signature, wallet connection or NFT mint is needed.</p>
+  <div class="trainer-discovery-actions"><button id="trainerReveal" type="button">Reveal artifact</button><button id="trainerCancel" type="button">Not now</button></div>
+ </div>
+</div>
 <div class="composer">
   <input id="input" class="input" disabled placeholder="Ask Your CyberpetAi Anything..." />
   <button id="send" class="send" disabled>Send</button>
@@ -422,7 +646,7 @@ const CONFIG = {
   NFT_CONTRACT: "0x1C37df48Fa365B1802D0395eE9F7Db842726Eb81",
   NFT_TOKEN_ID: null,
   API_BASE: "",
-  ENABLE_SESSION_RESTORE: false // ⬅️ disable missing endpoint
+  ENABLE_SESSION_RESTORE: true // ⬅️ disable missing endpoint
 };
 
 //-----------DOMs lookup---------------
@@ -459,7 +683,10 @@ if (pfpImg) {
 
 /* ---------------- UTIL ---------------- */
 function scrollBottom(){
-  messages.parentElement.scrollTop = messages.parentElement.scrollHeight;
+  const viewport=messages.parentElement;
+  if(!viewport) return;
+  viewport.scrollTop=viewport.scrollHeight;
+  requestAnimationFrame(()=>{viewport.scrollTop=viewport.scrollHeight;});
 }
 
 function escapeHtml(u=''){
@@ -470,22 +697,39 @@ function escapeHtml(u=''){
     .replaceAll('\n','<br/>');
 }
 
+// Keep the large desktop avatar inside its own decorative rail, never over chat or games.
+function currentChatAvatarUrl(){
+  const token = activeNFT?.tokenId;
+  if(token !== undefined && token !== null){
+    const resolved = resolveAvatarUrlFromToken(token);
+    if(typeof resolved === 'string' && resolved.trim()) return resolved;
+  }
+  return (typeof activeNFT?.image === 'string' && activeNFT.image) ? resolveNFTImage(activeNFT) : DEFAULT_PFP;
+}
 function bindAvatarTo(el){
-  if(!avatar || !el) return;
-  const msgRect = el.getBoundingClientRect();
-  const appRect = document.querySelector('.app').getBoundingClientRect();
-  const composerRect = document.querySelector('.composer').getBoundingClientRect();
-
-  // Adjust top so avatar doesn't go below composer
-  let top = msgRect.top - appRect.top - 100;
-  const maxTop = composerRect.top - appRect.top - avatar.offsetHeight - 100;
-  if(top > maxTop) top = maxTop;
-  if(top < 0) top = 0;
-
-  avatar.style.left = '-200px';  // distance from chat area, adjust as needed-----------------------------------------------------
-  avatar.style.top = top + 'px';
-  avatar.style.position = 'absolute';
-  avatar.style.zIndex = 1;
+  if(!el || !el.classList.contains('ai')) return;
+  // Keep exactly one active portrait, paired with the newest AI message.
+  const latest = [...messages.querySelectorAll('.msg.ai')].at(-1);
+  if(latest !== el) return;
+  messages.querySelectorAll('.response-avatar').forEach(node => {
+    if(!el.contains(node)) node.remove();
+  });
+  let portrait = el.querySelector('.response-avatar');
+  if(!portrait){
+    portrait = document.createElement('span');
+    portrait.className='response-avatar';
+    const img=document.createElement('img');
+    img.alt='Active Cyberpet';
+    img.loading='eager';
+    img.addEventListener('load',scrollBottom);
+    img.onerror=()=>{ if(img.src !== new URL(DEFAULT_PFP,location.href).href) img.src=DEFAULT_PFP; };
+    portrait.appendChild(img);
+    el.prepend(portrait);
+  }
+  portrait.querySelector('img').src=currentChatAvatarUrl();
+  portrait.classList.toggle('thinking',!!el.querySelector('.loading-spinner'));
+  portrait.classList.toggle('responding',!el.querySelector('.loading-spinner'));
+  scrollBottom();
 }
 
 function updateFloatingAvatar(tokenId){
@@ -523,8 +767,8 @@ function push(who, text){
   messages.appendChild(m);
   scrollBottom();
 
-  if(who !== 'User' && avatar){
-    requestAnimationFrame(()=>bindAvatarTo(m));
+  if(who !== 'User'){
+    bindAvatarTo(m);
   }
   return m;
 }
@@ -710,13 +954,17 @@ function selectNFT(nft, silent = false){
   activeNFT = nft;
   CONFIG.NFT_TOKEN_ID = nft.tokenId;
   updateFloatingAvatar(nft?.tokenId);
+  const activeReply = [...messages.querySelectorAll('.msg.ai')].at(-1);
+  if(activeReply) bindAvatarTo(activeReply);
 
   // ✅ replace placeholder ONLY after verified NFT selection
   if (pfpImg && nft?.image) {
   pfpImg.src = resolveNFTImage(nft);
   }
 
-  localStorage.setItem('activeNFT', nft.tokenId);
+  if (userAddress) localStorage.setItem('activeNFT:' + userAddress, nft.tokenId);
+  syncTrainerPetAvatar();
+  loadPetProgress().catch(()=>{});
 
   if(nftDropdown){
     nftDropdown.classList.add('hidden');
@@ -785,11 +1033,19 @@ async function connectWallet(){
   signer = web3Provider.getSigner();
   userAddress = accounts[0].toLowerCase();
 
-  connectBtn.classList.remove('blink');
-  connectBtn.textContent =
-    `Connected: ${userAddress.slice(0,6)}...${userAddress.slice(-4)}`;
-
-  await authenticateAndFetchNFT();
+  connectBtn.textContent = 'Authenticating wallet…';
+  connectBtn.disabled = true;
+  try {
+    await authenticateAndFetchNFT();
+    agentLoad().catch(()=>{});
+    connectBtn.classList.remove('blink');
+    connectBtn.textContent = `Authenticated: ${userAddress.slice(0,6)}...${userAddress.slice(-4)}`;
+  } catch (err) {
+    hasNFTAccess = false; inputEl.disabled = true; sendBtn.disabled = true;
+    connectBtn.textContent = 'Connect Wallet';
+    connectBtn.classList.add('blink');
+    push('System', escapeHtml(err.message || 'Wallet sign-in failed'));
+  } finally { connectBtn.disabled = false; }
 }
 
 /* Silent restore */
@@ -803,24 +1059,36 @@ async function restoreWalletConnection(){
   signer = web3Provider.getSigner();
   userAddress = accounts[0].toLowerCase();
 
-  connectBtn.classList.remove('blink');
-  connectBtn.textContent =
-    `Connected: ${userAddress.slice(0,6)}...${userAddress.slice(-4)}`;
+  connectBtn.textContent = `Wallet detected: ${userAddress.slice(0,6)}...${userAddress.slice(-4)} (sign in)`;
 }
 
 /* ---------------- AUTH ---------------- */
 async function authenticateAndFetchNFT(){
-  if(!userAddress) return;
-
-  const r = await fetch(`${CONFIG.API_BASE}/api/auth`,{
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({ address:userAddress }),
-    credentials:'include'
+  if(!userAddress || !signer) return;
+  const challengeResp = await fetch(`${CONFIG.API_BASE}/api/auth/challenge`, {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({address:userAddress}), credentials:'include'
   });
-
+  const challenge = await challengeResp.json();
+  if(!challengeResp.ok) throw new Error(challenge.error || 'Challenge failed');
+  const signature = await signer.signMessage(challenge.message);
+  const r = await fetch(`${CONFIG.API_BASE}/api/auth`, {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({address:userAddress,nonce:challenge.nonce,signature}), credentials:'include'
+  });
   const data = await r.json();
+  if(!r.ok) throw new Error(data.error || 'Authentication failed');
   handleNFTAuth(data);
+  if(data.returning) push('System','Welcome back, collector! Your Cyberpets collection has been synchronized. Your saved preferences are available when Memory is enabled.');
+  if(data.activities?.length){
+    const activity = data.activities.slice(0,10);
+    const summary = activity.map(a => `${a.direction === 'received' ? 'Received' : 'Sent'} Cyberpet #${escapeHtml(a.tokenId)}`).join('; ');
+    push('System', `Collection changes since your last connection: ${summary}${data.activities.length > 10 ? ' (and more)' : ''}. These are ownership changes, not verified sales.`);
+    const ids = data.activities.map(a=>a.id);
+    if(confirm(`CyberpetsAI detected ${ids.length} unacknowledged collection change(s). Mark as seen?`)){
+      await fetch(`${CONFIG.API_BASE}/api/activity/acknowledge`, {method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({ids})});
+    }
+  }
 }
 
 function handleNFTAuth(data){
@@ -858,7 +1126,7 @@ function handleNFTAuth(data){
     inputEl.disabled = false;
     sendBtn.disabled = false;
 
-    const storedToken = localStorage.getItem('activeNFT');
+    const storedToken = localStorage.getItem('activeNFT:' + userAddress);
     renderNFTSelector(ownedNFTs, storedToken || data.activeTokenId);
 
     push('System', `Chat unlocked — ${ownedNFTs.length} Cyberpets verified 🐾`);
@@ -873,27 +1141,119 @@ async function restoreSession(){
     if(!r.ok) return;
 
     const data = await r.json();
-    userAddress = data.address;
+    if (!userAddress || data.address.toLowerCase() !== userAddress.toLowerCase()) return;
     ownedNFTs = data.nfts || [];
 
     connectBtn.classList.remove('blink');
     connectBtn.textContent =
-      `Connected: ${userAddress.slice(0,6)}...${userAddress.slice(-4)}`;
+      `Authenticated: ${userAddress.slice(0,6)}...${userAddress.slice(-4)}`;
 
-    const storedToken = localStorage.getItem('activeNFT');
+    const storedToken = localStorage.getItem('activeNFT:' + userAddress);
     renderNFTSelector(ownedNFTs, storedToken || data.activeTokenId);
 
-    inputEl.disabled = false;
-    sendBtn.disabled = false;
+    hasNFTAccess = ownedNFTs.length > 0;
+    inputEl.disabled = !hasNFTAccess;
+    sendBtn.disabled = !hasNFTAccess;
 
     push('System','Session restored — welcome back 🐾');
   }catch{}
 }
 
+/* ---------------- ADVENTURE MODE ---------------- */
+const advPanel=document.getElementById('adventurePanel');
+let adventure=null,advDraft=null,advBusy=false;
+async function advRequest(url,method='GET',body){
+ const r=await fetch(url,{method,credentials:'include',headers:{'Content-Type':'application/json'},...(body?{body:JSON.stringify(body)}:{})});
+ const data=await r.json();if(!r.ok)throw new Error(data.error||'Adventure request failed');return data;
+}
+const advStatus=t=>document.getElementById('advStatus').textContent=t;
+function advRender(){
+ const state=advDraft?.state||adventure?.state;
+ document.getElementById('advState').textContent=state?`Location: ${state.location} | Turn ${state.turn}\nInventory: ${state.inventory.join(', ')||'Empty'}\nQuests: ${state.quests.join('; ')}`:'';
+}
+async function advRefresh(){
+ const list=await advRequest('/api/adventures');const el=document.getElementById('advList');
+ el.replaceChildren(new Option('New adventure',''));
+ list.forEach(a=>el.add(new Option(`#${a.tokenId} · ${a.title}`,a.id)));
+ if(adventure)el.value=adventure.id;
+}
+
+document.getElementById('advClose').onclick=()=>setLinkMode('chat');
+document.getElementById('advOpen').onclick=async()=>{
+ try{
+  const id=document.getElementById('advList').value;
+  adventure=id?await advRequest('/api/adventures/'+encodeURIComponent(id)):
+   await advRequest('/api/adventures','POST',{tokenId:activeNFT?.tokenId});
+  advDraft=null;document.getElementById('advSave').checked=true;
+  document.getElementById('advStory').textContent=adventure.state.scene;
+  advRender();advStatus('Adventure loaded. Save is ON.');await advRefresh();
+ }catch(e){advStatus(e.message);}
+};
+document.getElementById('advSave').onchange=e=>{
+ if(e.target.checked&&advDraft){e.target.checked=false;advStatus('Unsaved branch active. Reload the saved adventure to resume saving; temporary changes will be discarded.');return;}
+ advStatus(e.target.checked?'Progress saving ON':'Progress saving OFF — temporary branch only.');
+};
+document.getElementById('advSend').onclick=async()=>{
+ if(!adventure||advBusy)return;
+ const input=document.getElementById('advAction'),action=input.value.trim();if(!action)return;
+ advBusy=true;document.getElementById('advSend').disabled=true;advStatus('LinkLink is narrating...');
+ try{
+  const save=document.getElementById('advSave').checked;
+  const result=await advRequest('/api/adventures/'+adventure.id+'/turn','POST',{action,save,revision:adventure.revision,...(!save&&advDraft?{draft:advDraft}:{})});
+  if(save){adventure={...adventure,...result};}else{advDraft={state:result.state,recent:result.recent};}
+  document.getElementById('advStory').textContent+=`\n\nYOU: ${action}\n\nLINKLINK: ${result.narration}`;
+  push('User',escapeHtml(action));push('LinkLink',escapeHtml(result.narration));
+  input.value='';advRender();advStatus(save?'Progress saved':'Temporary branch — not saved');
+ }catch(e){advStatus(e.message);}finally{advBusy=false;document.getElementById('advSend').disabled=false;}
+};
+document.getElementById('advAction').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();document.getElementById('advSend').click();}});
+document.getElementById('advCheckpoint').onclick=async()=>{
+ if(!adventure)return advStatus('Load an adventure first.');
+ if(advDraft)return advStatus('Checkpoints require saved progress. Reload to exit the temporary branch.');
+ try{const label=prompt('Checkpoint name:','Story checkpoint');if(label===null)return;await advRequest('/api/adventures/'+adventure.id+'/checkpoints','POST',{label});advStatus('Checkpoint saved.');}catch(e){advStatus(e.message);}
+};
+document.getElementById('advRestore').onclick=async()=>{
+ if(!adventure)return advStatus('Load an adventure first.');
+ try{const cps=await advRequest('/api/adventures/'+adventure.id+'/checkpoints');if(!cps.length)return advStatus('No checkpoints yet.');
+  const choice=prompt('Choose checkpoint number:\n'+cps.map((c,i)=>`${i+1}. ${c.label}`).join('\n'),'1');if(!choice)return;
+  const cp=cps[Number(choice)-1];if(!cp)return advStatus('Invalid checkpoint');
+  if(!confirm('Restore checkpoint? Current saved progress will be replaced.'))return;
+  const data=await advRequest('/api/adventures/'+adventure.id+'/load-checkpoint','POST',{checkpointId:cp.id,revision:adventure.revision});
+  adventure={...adventure,...data};advDraft=null;document.getElementById('advSave').checked=true;
+  document.getElementById('advStory').textContent='Checkpoint restored. '+data.state.scene;advRender();advStatus('Checkpoint restored.');
+ }catch(e){advStatus(e.message);}
+};
+
+// Active NFT progression is scoped by signed wallet session + verified token ID.
+let petProgress=null,trainingRun=null;
+async function petApi(url,method='GET',body){const r=await fetch(url,{method,credentials:'include',headers:{'Content-Type':'application/json'},...(body?{body:JSON.stringify(body)}:{})});const d=await r.json();if(!r.ok)throw Error(d.error||'Cyberpet request failed');return d;}
+function renderPetProgress(p){petProgress=p;const goal=Math.max(1,p.level*100);const petLabel=activeNFT?.name||'Cyberpet #'+activeNFT?.tokenId;document.getElementById('petName').textContent=petLabel;document.getElementById('petLevel').textContent='Lv '+p.level;document.getElementById('petHpBar').style.width=(100*p.hp/Math.max(1,p.maxHp))+'%';document.getElementById('petXpBar').style.width=(100*p.xp/goal)+'%';document.getElementById('petHpText').textContent=p.hp+'/'+p.maxHp;document.getElementById('petXpText').textContent=p.xp+'/'+goal;document.getElementById('petCombatStats').textContent=`Power ${p.power} · Defense ${p.defense} · Containment ${p.containment}`;document.getElementById('petDetails').textContent=`Active Cyberpet · Lv ${p.level} · HP ${p.hp}/${p.maxHp} · Power ${p.power} · Defense ${p.defense} · Containment ${p.containment} · Abilities: ${p.abilities.join(', ')} · Items: ${p.inventory.join(', ')||'None'} · Training wins: ${p.trainingWins}`;}
+async function loadPetProgress(){if(!activeNFT||!ownedNFTs.some(n=>String(n.tokenId)===String(activeNFT.tokenId)))return;const tokenId=String(activeNFT.tokenId);const d=await petApi('/api/pet?tokenId='+encodeURIComponent(tokenId));if(String(activeNFT?.tokenId)===tokenId)renderPetProgress(d.pet);}
+
+/* ---------------- LINKLINK V1.3 AGENT ---------------- */
+let agentState=null,agentBusy=false;
+const agentPanel=document.getElementById('agentPanel');
+const agentNotice=document.getElementById('agentNotice');
+function agentRender(data){agentState=data;const p=data.player;updateHub(p);
+ document.getElementById('agentStats').textContent=`Level ${p.level} · HP ${p.hp}/${p.maxHp} · XP ${p.xp}/${p.level*100}`;
+ document.getElementById('agentInventory').textContent='Inventory: '+(p.inventory.join(' · ')||'Empty');
+ document.getElementById('agentMission').textContent=data.mission?`${data.mission.title} — ${data.mission.scene}`:'Introductory containment campaign completed.';
+ const choices=document.getElementById('agentChoices');choices.replaceChildren();
+ for(const choice of data.mission?.choices||[]){const b=document.createElement('button');b.type='button';b.textContent=choice.label;b.disabled=agentBusy;b.onclick=()=>agentAct(choice.id);choices.appendChild(b);}
+}
+async function agentLoad(){const r=await fetch('/api/rpg',{credentials:'include'});const d=await r.json();if(!r.ok)throw Error(d.error||'Unable to load agent');agentRender(d);}
+async function agentAct(action){if(!agentState||agentBusy)return;agentBusy=true;agentNotice.textContent='Validating mission action…';
+ try{const r=await fetch('/api/rpg/action',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({action,revision:agentState.revision,tokenId:String(activeNFT?.tokenId||'')})});const d=await r.json();if(!r.ok)throw Error(d.error||'Mission action failed');agentRender(d);if(d.reward)loadPetProgress().catch(()=>{});agentNotice.textContent=d.reward?`Saved · +${d.reward.xp} XP · ${d.reward.item}`:'Progress saved';push('LinkLink',escapeHtml(d.narration));}
+ catch(e){agentNotice.textContent=e.message;if(e.message.includes('changed'))await agentLoad();}
+ finally{agentBusy=false;}
+}
+
+document.getElementById('agentClose').onclick=()=>setLinkMode('chat');
 /* ---------------- CHAT ---------------- */
 async function sendMessage(){
   const t=inputEl.value.trim();
   if(!t) return;
+  if(linkNavigation(t)){inputEl.value='';return;}
 
   updateFloatingAvatar(activeNFT?.tokenId);
 
@@ -971,11 +1331,12 @@ pfpImg.src = url;
     // ---------------- END PATCH ----------------
 
     p.innerHTML = `<div class="meta">AI</div>${escapeHtml(d.text || 'No response')}`;
-    requestAnimationFrame(() => bindAvatarTo(p));
+    bindAvatarTo(p);
     incrementNFTStatus();
   } catch(err){
     console.error(err);
     p.innerHTML = '<div class="meta">AI</div>Error contacting AI backend.';
+    bindAvatarTo(p);
   } finally {
     sendBtn.disabled = false;
     if(avatar) avatar.classList.remove('typing');
@@ -1007,16 +1368,180 @@ function push(who, text){
 }
 */
 
-async function autoAuthIfNeeded(){
-  if(!userAddress) return;
-  if(hasNFTAccess) return;
-
-  try{
-    await authenticateAndFetchNFT();
-  }catch(err){
-    console.warn('Auto-auth failed', err);
-  }
+/* ---------------- UNIFIED LINKLINK HUB ---------------- */
+let linkMode='chat';
+const hubTitles={chat:'LinkLink · Companion Chat',adventure:'LinkLink · Freeform Adventure',missions:'LinkLink · Containment Missions',agent:'LinkLink · Agent & Inventory',trainer:'LinkLink · CyberpetsAI Trainer'};
+function updateHub(p){
+ if(!p)return;
+ const max=Math.max(1,Number(p.maxHp)||1),level=Math.max(1,Number(p.level)||1),xpGoal=level*100;
+ document.getElementById('hubLevel').textContent=`Agent · Lv ${level}`;
+ document.getElementById('hubHpBar').style.width=`${Math.max(0,Math.min(100,100*p.hp/max))}%`;
+ document.getElementById('hubXpBar').style.width=`${Math.max(0,Math.min(100,100*p.xp/xpGoal))}%`;
+ document.getElementById('hubHpText').textContent=`${p.hp}/${max}`;
+ document.getElementById('hubXpText').textContent=`${p.xp}/${xpGoal}`;
 }
+async function setLinkMode(mode){
+ if(!hubTitles[mode])return;
+ linkMode=mode;
+ document.getElementById('workspaceTitle').textContent=hubTitles[mode];
+ agentPanel.classList.toggle('hidden',!['missions','agent'].includes(mode));
+ advPanel.classList.toggle('hidden',mode!=='adventure');
+ document.getElementById('trainerPanel').classList.toggle('hidden',mode!=='trainer');
+ if(mode!=='trainer')document.getElementById('trainerFrame').removeAttribute('src');
+ document.querySelector('main.chat-area').classList.toggle('hidden',mode!=='chat');
+ for(const [id,m] of [['chatModeBtn','chat'],['adventureBtn','adventure'],['agentBtn','missions'],['inventoryBtn','agent']])document.getElementById(id).setAttribute('aria-pressed',String(mode===m));
+ closeGameMenu();
+ if(mode==='adventure'){try{await advRefresh();advStatus('Select an adventure, or create a new one.');}catch(e){advStatus(e.message);}}
+ if(mode==='missions'||mode==='agent'){try{await agentLoad();agentNotice.textContent='Wallet-linked agent progress loaded.';}catch(e){agentNotice.textContent=e.message;}}
+}
+function menuStatus(message){document.getElementById('menuFeedback').textContent=message;}
+function closeGameMenu(){document.getElementById('menuOverlay').classList.add('hidden');document.getElementById('gameMenuBtn').focus();}
+async function refreshMenuSaves(){
+ const saves=await advRequest('/api/adventures');const select=document.getElementById('menuSaved');select.replaceChildren(new Option('Select a save',''));
+ for(const a of saves)select.add(new Option(`${a.title} · Cyberpet #${a.tokenId} · ${new Date(a.updatedAt).toLocaleDateString()}`,a.id));
+ menuStatus(`${saves.length} saved adventure(s).`);
+}
+async function openGameMenu(){document.getElementById('menuOverlay').classList.remove('hidden');document.getElementById('menuDialog').focus();try{await refreshMenuSaves();}catch(e){menuStatus(e.message);}}
+const menuSafe=fn=>async()=>{try{await fn();}catch(e){menuStatus(e.message||'Operation failed');}};
+document.getElementById('chatModeBtn').onclick=()=>setLinkMode('chat');
+document.getElementById('adventureBtn').onclick=()=>setLinkMode('adventure');
+document.getElementById('agentBtn').onclick=()=>setLinkMode('missions');
+document.getElementById('inventoryBtn').onclick=()=>setLinkMode('agent');
+document.getElementById('gameMenuBtn').onclick=openGameMenu;
+document.getElementById('menuClose').onclick=closeGameMenu;
+document.getElementById('menuOverlay').addEventListener('click',e=>{if(e.target.id==='menuOverlay')closeGameMenu();});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!document.getElementById('menuOverlay').classList.contains('hidden'))closeGameMenu();});
+for(const button of document.querySelectorAll('#menuDialog [data-mode]'))button.onclick=()=>setLinkMode(button.dataset.mode);
+document.getElementById('menuRefresh').onclick=menuSafe(refreshMenuSaves);
+document.getElementById('menuLoad').onclick=menuSafe(async()=>{
+ const id=document.getElementById('menuSaved').value;if(!id)throw Error('Select a saved adventure first.');
+ await setLinkMode('adventure');document.getElementById('advList').value=id;document.getElementById('advOpen').click();
+});
+document.getElementById('menuCheckpoint').onclick=menuSafe(async()=>{
+ if(!adventure)throw Error('Load an adventure before creating a checkpoint.');
+ closeGameMenu();document.getElementById('advCheckpoint').click();
+});
+document.getElementById('menuRestore').onclick=menuSafe(async()=>{
+ if(!adventure)throw Error('Load an adventure before restoring a checkpoint.');
+ closeGameMenu();document.getElementById('advRestore').click();
+});
+document.getElementById('menuDelete').onclick=menuSafe(async()=>{
+ const id=document.getElementById('menuSaved').value;
+ if(!id)throw Error('Select the save you want to delete.');
+ if(!document.getElementById('menuConfirm').checked)throw Error('Check the deletion acknowledgement first.');
+ const label=document.getElementById('menuSaved').selectedOptions[0].textContent;
+ if(!confirm(`Permanently delete ${label} and all its checkpoints? This cannot be undone.`))return;
+ await advRequest('/api/adventures/'+encodeURIComponent(id),'DELETE');
+ if(adventure?.id===id){adventure=null;advDraft=null;document.getElementById('advStory').textContent='';advRender();}
+ document.getElementById('menuConfirm').checked=false;await refreshMenuSaves();menuStatus('Adventure and checkpoints permanently deleted. NFT metadata and RPG progress unchanged.');
+});
+document.getElementById('menuMemory').onclick=()=>{closeGameMenu();document.getElementById('memoryBtn').click();};
+document.getElementById('menuClearChat').onclick=()=>{
+ if(confirm('Clear messages from this browser view? This does not delete Collector Memory or server-side saves.')){messages.replaceChildren();menuStatus('On-screen conversation cleared.');}
+};
+document.getElementById('menuCompact').checked=localStorage.getItem('linklink:compact')==='1';
+function applyCompact(){document.querySelectorAll('.msg').forEach(e=>e.style.fontSize=document.getElementById('menuCompact').checked?'13px':'');}
+document.getElementById('menuCompact').onchange=e=>{localStorage.setItem('linklink:compact',e.target.checked?'1':'0');applyCompact();menuStatus('Display preference saved locally.');};
+document.getElementById('menuClearCache').onclick=()=>{
+ if(!confirm('Clear LinkLink display preferences? This will NOT erase NFT selection, ownership, Collector Memory, or saved adventures.'))return;
+ localStorage.removeItem('linklink:compact');document.getElementById('menuCompact').checked=false;applyCompact();menuStatus('LinkLink display preferences cleared.');
+};
+/* Local navigation commands are deterministic and do not invoke AI or modify gameplay. */
+function linkNavigation(text){
+ const t=text.trim().toLowerCase().replace(/[.!?]+$/,'');
+ if (/^(?:(?:linklink[, ]+)?(?:open|show|find|play|launch|reveal)\s+)?(?:the\s+)?cyber\s*pets?\s*trainer(?:\s+(?:game|artifact))?$/.test(t)) {
+   const gate=document.getElementById('trainerDiscovery');
+   if(!hasNFTAccess){push('LinkLink','Authenticate with your CyberpetsAI NFT wallet to reveal this artifact.');return true;}
+   gate.classList.remove('hidden');document.querySelector('.trainer-discovery').focus();
+   push('LinkLink','Hidden artifact detected: CyberpetsAI Trainer. Choose Reveal artifact to enter the training simulation.');
+   return true;
+ }
+
+ const commands=[[/^(?:linklink[, ]+)?(?:open|show|go to|switch to) (?:the )?(?:game )?menu$/,()=>openGameMenu(),'Opening the game menu.'],[/^(?:linklink[, ]+)?(?:open|show|switch to) (?:the )?(?:agent|inventory|stats)$/,()=>setLinkMode('agent'),'Opening Agent & Inventory.'],[/^(?:linklink[, ]+)?(?:open|show|switch to) (?:the )?(?:missions|mission board)$/,()=>setLinkMode('missions'),'Opening Containment Missions.'],[/^(?:linklink[, ]+)?(?:open|show|switch to) (?:the )?(?:adventure|adventures)$/,()=>setLinkMode('adventure'),'Opening Freeform Adventure.'],[/^(?:linklink[, ]+)?(?:open|show|switch to) (?:the )?(?:chat|companion chat)$/,()=>setLinkMode('chat'),'Opening Companion Chat.']];
+ for(const [regex,action,reply] of commands)if(regex.test(t)){action();push('LinkLink',escapeHtml(reply));return true;}
+ return false;
+}
+
+// Selected NFT is the sole source for Trainer pet appearance. This is UI-only.
+function syncTrainerPetAvatar(){
+ const frame=document.getElementById('trainerFrame');
+ if(!frame || !frame.contentWindow || !activeNFT || !ownedNFTs.some(n=>String(n.tokenId)===String(activeNFT.tokenId)))return;
+ const image=resolveAvatarUrlFromToken(activeNFT.tokenId) || resolveNFTImage(activeNFT);
+ if(typeof image!=='string')return;
+ let url;
+ try{url=new URL(image,location.href);}catch{return;}
+ if(url.protocol!=='https:' && url.origin!==location.origin)return;
+ frame.contentWindow.postMessage({type:'cyberpets:trainer:pet',tokenId:String(activeNFT.tokenId),imageUrl:url.href,name:String(activeNFT.name||'Cyberpet').slice(0,100)},location.origin);
+}
+document.getElementById('trainerFrame').addEventListener('load',syncTrainerPetAvatar);
+// Trainer discovery: explicit confirmation and existing wallet-gated server session.
+function closeTrainerDiscovery(){document.getElementById('trainerDiscovery').classList.add('hidden');inputEl.focus();}
+document.getElementById('trainerCancel').onclick=closeTrainerDiscovery;
+document.getElementById('trainerReveal').onclick=async()=>{
+ closeTrainerDiscovery();
+ try {
+  const r=await fetch('/api/session',{credentials:'include'});
+  if(!r.ok)throw new Error('Your LinkLink session has expired. Sign in again.');
+  const d=await r.json();
+  if(!Array.isArray(d.nfts)||!d.nfts.length)throw new Error('A verified CyberpetsAI NFT is required.');
+  // Select only an NFT confirmed by the current authenticated session.
+  if(!activeNFT || !d.nfts.some(n=>String(n.tokenId)===String(activeNFT.tokenId))){
+   const verified=d.nfts[0];
+   const local=ownedNFTs.find(n=>String(n.tokenId)===String(verified.tokenId));
+   if(local)selectNFT(local);
+   else throw new Error('Select a verified Cyberpet to enter Trainer.');
+  }
+  await setLinkMode('trainer');
+  trainingRun=null;
+  document.getElementById('trainerStatus').textContent='Press Start in Trainer to begin a reward-eligible session.';
+  document.getElementById('trainerFrame').src='/trainer/';
+  push('LinkLink','Trainer artifact revealed. Use Train, Charge, Clean and Play to care for your Cyberpet.');
+ }catch(e){push('LinkLink',escapeHtml(e.message));}
+};
+document.getElementById('trainerExit').onclick=()=>{trainingRun=null;trainingStarting=null;clearInterval(trainingTicker);trainingTicker=null;setLinkMode('chat');};
+document.getElementById('trainerDiscovery').addEventListener('click',e=>{if(e.target.id==='trainerDiscovery')closeTrainerDiscovery();});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!document.getElementById('trainerDiscovery').classList.contains('hidden'))closeTrainerDiscovery();});
+let trainingStarting=null;
+let trainingTicker=null;
+function trainingStatus(message){document.getElementById('trainerStatus').textContent=message;}
+window.addEventListener('message',e=>{
+ if(e.origin!==window.location.origin||e.source!==document.getElementById('trainerFrame').contentWindow)return;
+ if(e.data?.type==='cyberpets:trainer:started'){
+   if(trainingRun||trainingStarting||!activeNFT)return;
+   const tokenId=String(activeNFT.tokenId);
+   trainingStatus('Starting verified training session…');
+   trainingStarting=petApi('/api/pet/training/start','POST',{tokenId}).then(run=>{
+     if(String(activeNFT?.tokenId)!==tokenId)return;
+     trainingRun={...run,tokenId,startedAt:Date.now()};
+     clearInterval(trainingTicker);
+     const update=()=>{if(!trainingRun){clearInterval(trainingTicker);return;}const remain=Math.max(0,Math.ceil((trainingRun.minSeconds||45)-(Date.now()-trainingRun.startedAt)/1000));trainingStatus(remain?'Training active · XP eligibility in '+remain+'s':'Training eligible for XP · Finish the simulation to claim.');};
+     update();trainingTicker=setInterval(update,1000);
+   }).catch(err=>trainingStatus(err.message+' · Practice mode (no XP).')).finally(()=>trainingStarting=null);
+   return;
+ }
+
+ if(e.data?.type==='cyberpets:trainer:complete'){
+  const finish=async()=>{
+    if(trainingStarting)await trainingStarting;
+    const run=trainingRun;
+    if(!run||!activeNFT||String(activeNFT.tokenId)!==run.tokenId){push('LinkLink','Training simulation complete (practice mode).');return;}
+    const remain=Math.max(0,Math.ceil((run.minSeconds||45)-(Date.now()-run.startedAt)/1000));
+    if(remain){
+      trainingStatus('Simulation complete · Cooling down '+remain+'s before XP claim.');
+      await new Promise(resolve=>setTimeout(resolve,remain*1000+1200));
+    }
+    // Keep the claim bound to the original verified token even if the user switches pets.
+    try{
+      const d=await petApi('/api/pet/training/complete','POST',{runId:run.runId,tokenId:run.tokenId});
+      if(String(activeNFT?.tokenId)===run.tokenId)renderPetProgress(d.pet);
+      trainingStatus('Training complete · +'+d.xp+' Cyberpet XP');
+      push('LinkLink','Training completed! Cyberpet #'+run.tokenId+' earned +'+d.xp+' XP.');
+    }catch(err){trainingStatus(err.message);push('LinkLink',escapeHtml('Training reward not awarded: '+err.message));}
+    finally{if(trainingRun?.runId===run.runId)trainingRun=null;clearInterval(trainingTicker);trainingTicker=null;}
+  };
+  finish();
+ }
+});
 
 /* ---------------- INIT ------------------------------------------------------------------------------------------------------ */
 async function loadRarityTable() {
@@ -1039,6 +1564,25 @@ document.addEventListener('DOMContentLoaded', async ()=>{
   await loadAvatarMap();
 });
 */
+document.getElementById('memoryBtn').onclick=async()=>{
+  try{
+    const r=await fetch(`${CONFIG.API_BASE}/api/memory`,{credentials:'include'});
+    if(!r.ok){push('System','Connect and sign your wallet to manage memory.');return;}
+    const memory=await r.json();
+    const choice=prompt(`Collector Memory: ${memory.enabled?'ON':'OFF'}\nSaved notes: ${memory.notes.length}\n\n1 = Enable\n2 = Disable\n3 = View notes\n4 = Clear notes\n\nTo save a note, send: remember: your preference\nTo remove all notes, send: forget my memories`);
+    if(choice==='1'||choice==='2'){
+      const update=await fetch(`${CONFIG.API_BASE}/api/memory`,{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({enabled:choice==='1'})});
+      if(!update.ok)throw new Error('Unable to change memory settings');
+      push('System',choice==='1'?'Long-term memory enabled. Use “remember: ...” to save a short note.':'Long-term memory disabled. Existing notes are retained but not sent to the AI.');
+    }else if(choice==='3'){
+      alert(memory.notes.length?memory.notes.map((n,i)=>`${i+1}. ${n}`).join('\n'):'No saved memory notes.');
+    }else if(choice==='4'&&confirm('Permanently clear all saved collector memory notes?')){
+      const del=await fetch(`${CONFIG.API_BASE}/api/memory`,{method:'DELETE',credentials:'include'});
+      if(!del.ok)throw new Error('Unable to clear notes');
+      push('System','Saved collector memory notes cleared.');
+    }
+  }catch(e){push('System',escapeHtml(e.message||'Memory settings unavailable'));}
+};
 connectBtn.onclick = connectWallet;
 sendBtn.onclick = sendMessage;
 inputEl.addEventListener('keydown',e=>{
@@ -1052,7 +1596,8 @@ push('System','Welcome — click Connect Wallet. Chat unlocks only if your walle
   await loadAvatarMap();  
   await restoreWalletConnection();
   await restoreSession();
-  await autoAuthIfNeeded();
+  if(hasNFTAccess){agentLoad().catch(()=>{});loadPetProgress().catch(()=>{});}
+  // Signing is initiated by an explicit Connect Wallet click only.
 })();
 </script>
 </body>

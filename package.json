@@ -1,7 +1,7 @@
 {
   "name": "cyberpets-ai-chat",
   "version": "1.0.0",
-  "description": "NFT-gated AI Chat MVP — Cyberpets",
+  "description": "NFT-gated AI Chat MVP \u2014 Cyberpets",
   "main": "server.js",
   "type": "module",
   "scripts": {
@@ -21,11 +21,12 @@
     "cookie-parser": "^1.4.7",
     "dotenv": "^17.2.3",
     "express": "^4.22.1",
-    "node-fetch": "^3.3.2"
+    "node-fetch": "^3.3.2",
+    "ethers": "^5.7.2",
+    "pg": "^8.13.1"
   },
   "devDependencies": {
     "nodemon": "^3.1.11"
-
   },
   "engines": {
     "node": "24.x"

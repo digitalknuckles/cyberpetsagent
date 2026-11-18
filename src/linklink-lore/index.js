@@ -174,42 +174,6 @@ export function retrieveLore(query, options = {}) {
   };
 }
 
-//
-//export function retrieveLore(query, options = {}) {
-  //const archive = loadArchive();
-  //const maxRecords = Math.max(1, Math.min(Number(options.maxRecords) || 6, 10));
-  //const maxChars = Math.max(1000, Math.min(Number(options.maxChars) || 12000, 20000));
-  //const queryTokens = [...new Set(tokenize(query))];
-
-  //if (!queryTokens.length) {
-    //return { release: archive.release, records: [], context: `LORE ARCHIVE RELEASE: ${archive.release}\nNo lore records matched the query.` };
-  //}
-
-  const ranked = archive.records
-    .map(record => ({ record, score: scoreRecord(record, queryTokens) }))
-    .filter(item => item.score > 0)
-    .sort((a, b) => b.score - a.score || a.record.id.localeCompare(b.record.id))
-    .slice(0, maxRecords);
-
-  const selected = [];
-  let usedChars = 0;
-  for (const item of ranked) {
-    const line = `[${item.record.id}] ${item.record.title} (canon: ${item.record.canon ? 'yes' : 'no'}): ${item.record.content}`;
-    if (usedChars + line.length > maxChars) continue;
-    selected.push(item.record);
-    usedChars += line.length;
-  }
-
-  const context = [
-    `LORE ARCHIVE RELEASE: ${archive.release}`,
-    selected.length
-      ? selected.map(r => `[${r.id}] ${r.title} | canon: ${r.canon ? 'yes' : 'no'} | ${r.content}`).join('\n')
-      : 'No approved lore records matched this message. Do not invent archive facts; answer from the core project instructions or ask a clarifying question.'
-  ].join('\n\n');
-
-  return { release: archive.release, records: selected, context };
-
-
 export function buildLoreContext(query, options = {}) {
   return [
     'ARCHIVE RETRIEVAL RULES:',

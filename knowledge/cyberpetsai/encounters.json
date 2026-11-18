@@ -1,0 +1,17 @@
+[
+  {
+    "id": "encounter.rogue-relay",
+    "category": "encounter",
+    "title": "Rogue relay",
+    "version": "1.3.0",
+    "status": "approved",
+    "tags": [
+      "relay",
+      "containment",
+      "glitch"
+    ],
+    "content": "A corrupted relay can be isolated with a Bootkey once the signal sequence is solved.",
+    "canon": false,
+    "aliases": []
+  }
+]

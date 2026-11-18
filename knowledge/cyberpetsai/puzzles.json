@@ -1,0 +1,17 @@
+[
+  {
+    "id": "puzzle.signal-sequence",
+    "category": "puzzle",
+    "title": "Signal sequence",
+    "version": "1.3.0",
+    "status": "approved",
+    "tags": [
+      "signal",
+      "sequence",
+      "puzzle"
+    ],
+    "content": "Training puzzle: inspect three signal fragments to reconstruct the relay sequence. The valid sequence is 2-4-1.",
+    "canon": false,
+    "aliases": []
+  }
+]
