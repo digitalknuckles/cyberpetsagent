@@ -346,8 +346,8 @@ let pet = {
   y: 25,
   vx: 1.5,
   vy: 1.5,
-  width: 500,
-  height: 500,
+  width: 250,
+  height: 250,
   speedMultiplier: 1,
   image: new Image(),
   stats: {
@@ -507,6 +507,11 @@ function resizeCanvas() {
   if (parent) {
     canvas.width = parent.clientWidth;
     canvas.height = parent.clientHeight;
+    const newSize = Math.min(250, Math.max(64, Math.min(canvas.width, canvas.height) * 0.32));
+    pet.width = newSize;
+    pet.height = newSize;
+    pet.x = Math.max(0, Math.min(pet.x, canvas.width - pet.width));
+    pet.y = Math.max(0, Math.min(pet.y, canvas.height - pet.height));
   } else {
     // Fallback in case canvas has no parent (not recommended)
     canvas.width = window.innerWidth;
@@ -518,18 +523,11 @@ window.addEventListener("resize", resizeCanvas);
 resizeCanvas();
 
 // Larger pet artwork: scale the active avatar without changing underlying collision physics.
-function drawLargePet(){if(pet.image.complete&&pet.image.naturalWidth>0){const w=pet.width*2,h=pet.height*2;ctx.drawImage(pet.image,pet.x+pet.width/2-w/2,pet.y+pet.height/2-h/2,w,h);}else{ctx.fillStyle='red';ctx.fillRect(pet.x,pet.y,pet.width,pet.height);}}
 function drawPet() {
-  return drawLargePet();
   if (pet.image.complete && pet.image.naturalWidth > 0) {
     ctx.drawImage(pet.image, pet.x, pet.y, pet.width, pet.height);
-    if (pet.collisionMsg) {
-      ctx.font = "20px Arial";
-      ctx.fillStyle = "black";
-      ctx.fillText(pet.collisionMsg, pet.x + pet.width + 10, pet.y + 20);
-    }
   } else {
-    ctx.fillStyle = "red";
+    ctx.fillStyle = 'red';
     ctx.fillRect(pet.x, pet.y, pet.width, pet.height);
   }
 }
@@ -538,7 +536,7 @@ function drawPet() {
 function updateStats() {
   for (let key in pet.stats) {
     // 👇 Gradual decay
-    pet.stats[key] = Math.max(0, pet.stats[key] - 0.1);  // or adjust speed of decay
+    pet.stats[key] = Math.max(0, pet.stats[key] - 0.1 * frameScale);  // or adjust speed of decay
 
     // 👇 Check for stat at zero and handle timer logic
     if (pet.stats[key] <= 0) {
@@ -646,7 +644,7 @@ function checkGameConditions() {
   }
 
   if (trainingUnlocked && globalHealth >= 100) {
-    globalTraining = Math.min(100, globalTraining + 0.25);
+    globalTraining = Math.min(100, globalTraining + 0.25 * frameScale);
   }
 
   if (globalHealth >= 100 && trainingUnlocked && globalTraining >= 100 && !window.victoryAchieved) {
@@ -673,15 +671,15 @@ function handleRoamingPause() {
 
 function movePet() {
   if (pet.isRoaming && !pet.isPaused) {
-    pet.x += pet.vx * pet.speedMultiplier;
-    pet.y += pet.vy * pet.speedMultiplier;
+    pet.x += pet.vx * pet.speedMultiplier * frameScale;
+    pet.y += pet.vy * pet.speedMultiplier * frameScale;
 
     // Edge bounce
     if (pet.x <= 0 || pet.x + pet.width >= canvas.width) pet.vx *= -1;
     if (pet.y <= 0 || pet.y + pet.height >= canvas.height) pet.vy *= -1;
 
     // Count this as a roaming step
-    pet.roamSteps++;
+    pet.roamSteps += frameScale;
     if (pet.roamSteps >= pet.roamPauseCooldown) {
       pet.isPaused = true;
       pet.pauseDuration = getRandomInt(120, 300); // Pause 2-5 seconds
@@ -747,7 +745,7 @@ function handleStatInteraction(stat) {
 function updateCooldowns() {
   const now = Date.now();
   if (!lastStatInteraction) lastStatInteraction = now; // Fallback init
-  const delta = (now - lastStatInteraction) / 500;
+  const delta = Math.min((now - lastStatInteraction) / 1000, 0.1);
   lastStatInteraction = now;
   
   for (let stat in statCooldowns) {
@@ -758,7 +756,7 @@ function updateCooldowns() {
 
   for (let key in pet.stats) {
     if (pet.stats[key] === 0) {
-      globalHealth = Math.max(0, globalHealth - 5);
+      globalHealth = Math.max(0, globalHealth - 5 * frameScale);
     }
   }
 
@@ -766,7 +764,7 @@ function updateCooldowns() {
 
   const allHigh = Object.values(pet.stats).every(value => value >= 80);
   if (allHigh) {
-    globalHealth = Math.min(100, globalHealth + 0.05);
+    globalHealth = Math.min(100, globalHealth + 0.05 * frameScale);
   }
 }
 
@@ -835,16 +833,22 @@ function updateGlobalHealth() {
   const anyLow = statsValues.some(value => value <= 50);
 
   if (allHigh) {
-    globalHealth = Math.min(100, globalHealth + 0.10);
+    globalHealth = Math.min(100, globalHealth + 0.10 * frameScale);
   } else if (anyLow) {
-    globalHealth = Math.max(0, globalHealth - 0.15); // <- More punishing
+    globalHealth = Math.max(0, globalHealth - 0.15 * frameScale); // <- More punishing
   }
 }
 
 // Main game loop
 let victoryAchieved = false;  // Flag to track if victory is achieved
 
-function gameLoop() {
+let lastFrameTime = 0;
+let frameScale = 1;
+function gameLoop(timestamp) {
+  if (!lastFrameTime) lastFrameTime = timestamp;
+  // Normalize simulation to 60 FPS, regardless of mobile/desktop refresh rate.
+  frameScale = Math.min(Math.max((timestamp - lastFrameTime) / (1000 / 60), 0), 3);
+  lastFrameTime = timestamp;
   // If victory is achieved, stop the game loop
   if (victoryAchieved) return;
 
@@ -858,8 +862,7 @@ function gameLoop() {
 
   drawBackground(); 
   
-  updatePetRoaming();
-  movePet(); // Only call once
+  updatePetRoaming(); // Single movement update
   updateStats();
   updateGlobalHealth(); 
   updateCooldowns();
@@ -873,7 +876,7 @@ function gameLoop() {
 // Define this OUTSIDE the loop
 function updatePetRoaming() {
   if (pet.isPaused) {
-    pet.pauseDuration--;
+    pet.pauseDuration -= frameScale;
 
     if (pet.pauseDuration <= 0) {
       pet.isPaused = false;
@@ -888,15 +891,20 @@ function updatePetRoaming() {
     }
   } else {
     // Move the pet if not paused
-    pet.x += pet.vx * pet.speedMultiplier;
-    pet.y += pet.vy * pet.speedMultiplier;
+    pet.x += pet.vx * pet.speedMultiplier * frameScale;
+    pet.y += pet.vy * pet.speedMultiplier * frameScale;
 
     // Bounce off edges
     if (pet.x <= 0 || pet.x + pet.width >= canvas.width) pet.vx *= -1;
     if (pet.y <= 0 || pet.y + pet.height >= canvas.height) pet.vy *= -1;
 
+    // Keep the sprite fully inside the visible game stage.
+    if (pet.x < 0) { pet.x = 0; pet.vx = Math.abs(pet.vx); }
+    if (pet.y < 0) { pet.y = 0; pet.vy = Math.abs(pet.vy); }
+    if (pet.x + pet.width > canvas.width) { pet.x = Math.max(0, canvas.width - pet.width); pet.vx = -Math.abs(pet.vx); }
+    if (pet.y + pet.height > canvas.height) { pet.y = Math.max(0, canvas.height - pet.height); pet.vy = -Math.abs(pet.vy); }
     // Track roaming steps
-    pet.roamSteps++;
+    pet.roamSteps += frameScale;
     if (pet.roamSteps >= pet.roamPauseCooldown) {
       pet.isPaused = true;
       pet.pauseDuration = getRandomInt(120, 300); // Pause 2–5 seconds
